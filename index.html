@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#173f5f">
-  <meta name="description" content="行政法を重点強化した、行政書士試験の科目別テキスト・図解・オリジナル問題で学ぶスマートフォン対応サイト。">
+  <meta name="description" content="行政法を重点強化し、全1000問のオリジナル問題と科目別テキスト・図解で学ぶ行政書士試験サイト。">
   <title>行政書士PASS | オリジナル問題で学ぶ</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
@@ -13,6 +13,7 @@
   <script defer src="reinforcement-v0.3.0.js"></script>
   <script defer src="administrative-focus-v0.4.0.js"></script>
   <script defer src="administrative-trend-v0.5.0.js"></script>
+  <script defer src="mega-bank-v1.0.0.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -34,7 +35,7 @@
 
       <section class="hero panel">
         <div>
-          <span class="pill">行政法5年分演習版 Ver.0.5.0</span>
+          <span class="pill">全1000問版 Ver.1.0.0</span>
           <h2>今日の学習を、すぐ始める</h2>
           <p>行政法7講義を軸に6科目を横断。濃いテキスト・図解・独自問題で、制度を比較しながら学べます。</p>
         </div>
@@ -69,7 +70,7 @@
           <summary>行政法の内訳を見る</summary>
           <p>行政法の一般的な法理論、行政手続法、行政不服審査法、行政事件訴訟法、国家賠償法、地方自治法を中心に学習します。</p>
         </details>
-        <p class="trend-summary"><strong>行政法の独自問題95問＝本試験19問×5年分相当の演習量。</strong><br>2021〜2025年度の公式問題300問を分野別に分析し、独自問題を○×101問・5肢択一26問・多肢選択式8問・40字記述式15問収録しています。公式問題本文は転載していません。</p>
+        <p class="trend-summary"><strong>全1000問・行政法396問の独自問題バンク。</strong><br>2021〜2025年度の公式問題300問を分野別に分析し、○×341問・5肢択一506問・多肢選択式48問・40字記述式105問を収録しています。公式問題本文は転載していません。</p>
       </section>
 
       <section class="panel priority-panel" aria-labelledby="priorityTitle">
@@ -78,7 +79,7 @@
             <p class="kicker">TREND FORECAST</p>
             <h2 id="priorityTitle">行政法の予測重要度</h2>
           </div>
-          <strong class="forecast-total">全95問</strong>
+          <strong class="forecast-total">行政法396問</strong>
         </div>
         <p class="priority-intro">直近5年の出題配分、制度横断性、多肢・記述への展開可能性から学習優先度を算定しています。</p>
         <ol class="priority-list">
@@ -117,19 +118,19 @@
             <span class="menu-icon" aria-hidden="true">読</span><strong>科目別テキスト</strong><small>要点・条文・確認ポイント</small>
           </button>
           <button class="menu-card" data-action="start-ox" type="button">
-            <span class="menu-icon" aria-hidden="true">○×</span><strong>一問一答</strong><small>オリジナル問題</small>
+            <span class="menu-icon" aria-hidden="true">○×</span><strong>一問一答</strong><small>全341問</small>
           </button>
           <button class="menu-card" data-action="start-five" type="button">
-            <span class="menu-icon" aria-hidden="true">五</span><strong>5肢択一</strong><small>本試験形式を意識</small>
+            <span class="menu-icon" aria-hidden="true">五</span><strong>5肢択一</strong><small>全506問</small>
           </button>
           <button class="menu-card" data-action="start-review" type="button">
             <span class="menu-icon" aria-hidden="true">復</span><strong>間違い復習</strong><small id="wrongMenuCount">未復習 0問</small>
           </button>
           <button class="menu-card" data-action="start-multi" type="button">
-            <span class="menu-icon" aria-hidden="true">多</span><strong>多肢選択式</strong><small>語句を選んで完成</small>
+            <span class="menu-icon" aria-hidden="true">多</span><strong>多肢選択式</strong><small>全48問</small>
           </button>
           <button class="menu-card" data-action="start-written" type="button">
-            <span class="menu-icon" aria-hidden="true">40</span><strong>記述式</strong><small>40字程度の答案練習</small>
+            <span class="menu-icon" aria-hidden="true">40</span><strong>記述式</strong><small>全105問・40字答案</small>
           </button>
         </div>
       </section>
@@ -230,7 +231,7 @@
   </main>
 
   <footer>
-    <p>行政書士PASS Ver.0.5.0｜オリジナル教材・非公式サイト</p>
+    <p>行政書士PASS Ver.1.0.0｜全1000問・オリジナル教材・非公式サイト</p>
     <p><a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener noreferrer">e-Gov法令検索</a> · <button class="footer-button" data-action="reset" type="button">学習履歴を初期化</button></p>
   </footer>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>

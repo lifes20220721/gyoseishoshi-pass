@@ -9,10 +9,12 @@ vm.runInNewContext(fs.readFileSync(path.join(root, 'data.js'), 'utf8'), context)
 vm.runInNewContext(fs.readFileSync(path.join(root, 'reinforcement-v0.3.0.js'), 'utf8'), context);
 vm.runInNewContext(fs.readFileSync(path.join(root, 'administrative-focus-v0.4.0.js'), 'utf8'), context);
 vm.runInNewContext(fs.readFileSync(path.join(root, 'administrative-trend-v0.5.0.js'), 'utf8'), context);
+vm.runInNewContext(fs.readFileSync(path.join(root, 'mega-bank-v1.0.0.js'), 'utf8'), context);
 const data = context.window.GYOPASS_DATA;
 const reinforcement = context.window.GYOPASS_REINFORCEMENT;
 const adminFocus = context.window.GYOPASS_ADMIN_FOCUS;
 const adminTrend = context.window.GYOPASS_ADMIN_TREND;
+const megaBank = context.window.GYOPASS_MEGA_BANK;
 data.ox.push(...reinforcement.ox);
 data.five.push(...reinforcement.five);
 data.multi.push(...reinforcement.multi);
@@ -42,15 +44,28 @@ for (const question of [...data.ox, ...data.five, ...data.multi, ...data.written
   question.priorityScore = priority.score;
 }
 data.version = adminTrend.version;
+data.ox.push(...megaBank.ox);
+data.five.push(...megaBank.five);
+data.multi.push(...megaBank.multi);
+data.written.push(...megaBank.written);
+for (const question of [...megaBank.ox, ...megaBank.five, ...megaBank.multi, ...megaBank.written]) {
+  if (question.subject !== 'administrative') continue;
+  const priority = adminTrend.priorities[question.lessonId];
+  assert(priority, `${question.id}: 重要度設定がありません`);
+  question.priority = `${priority.level} ${priority.label}`;
+  question.priorityScore = priority.score;
+}
+data.version = megaBank.version;
 const audit = JSON.parse(fs.readFileSync(path.join(root, 'official-topic-audit-v0.3.0.json'), 'utf8'));
 
 assert.equal(data.subjects.length, 6);
 assert.equal(data.lessons.length, 20);
-assert.equal(data.version, '0.5.0');
-assert.equal(data.ox.length, 101);
-assert.equal(data.five.length, 26);
-assert.equal(data.multi.length, 8);
-assert.equal(data.written.length, 15);
+assert.equal(data.version, '1.0.0');
+assert.equal(data.ox.length, 341);
+assert.equal(data.five.length, 506);
+assert.equal(data.multi.length, 48);
+assert.equal(data.written.length, 105);
+assert.equal(data.ox.length + data.five.length + data.multi.length + data.written.length, 1000);
 assert.equal(audit.questions_reviewed, 300);
 assert.equal(audit.distribution.reduce((sum, item) => sum + item.questions, 0), 300);
 assert.equal(audit.administrative_law_breakdown.reduce((sum, item) => sum + item.questions, 0), 95);
@@ -98,17 +113,37 @@ for (const question of focusQuestions) {
 const predictedQuestions = [...adminTrend.ox, ...adminTrend.five, ...adminTrend.multi, ...adminTrend.written];
 assert.equal(predictedQuestions.length, 11);
 const administrativeQuestions = [...data.ox, ...data.five, ...data.multi, ...data.written].filter(question => question.subject === 'administrative');
-assert.equal(administrativeQuestions.length, adminTrend.targetAdminQuestions);
-assert.equal(administrativeQuestions.length, 95);
+assert(administrativeQuestions.length >= adminTrend.targetAdminQuestions);
+assert.equal(administrativeQuestions.length, 396);
 for (const question of administrativeQuestions) {
   assert(question.priority, `${question.id}: 重要度が付与されていません`);
   assert(question.priorityScore > 0, `${question.id}: 重要度スコアがありません`);
 }
 assert.equal(Object.keys(adminTrend.priorities).length, 7);
 assert.deepEqual([...new Set(Object.values(adminTrend.priorities).map(item => item.level))].sort(), ['A', 'S']);
+const megaQuestions = [...megaBank.ox, ...megaBank.five, ...megaBank.multi, ...megaBank.written];
+assert.equal(megaBank.concepts, 120);
+assert.equal(megaQuestions.length, 850);
+assert.equal(megaBank.ox.length, 240);
+assert.equal(megaBank.five.length, 480);
+assert.equal(megaBank.multi.length, 40);
+assert.equal(megaBank.written.length, 90);
+for (const question of megaQuestions) {
+  assert.equal(question.mega, true, `${question.id}: 1000問バンクの印がありません`);
+  assert.equal(question.trend.sourceUrl, audit.source_url, `${question.id}: 公式出典URLが一致しません`);
+}
+for (const question of megaBank.five) {
+  assert.equal(question.options.length, 5, `${question.id}: 選択肢が5つではありません`);
+  assert.equal(new Set(question.options).size, 5, `${question.id}: 選択肢が重複しています`);
+}
+for (const question of megaBank.multi) {
+  assert.equal(question.words.length, 8, `${question.id}: 語群が8語ではありません`);
+  assert.equal(new Set(question.words).size, 8, `${question.id}: 語群が重複しています`);
+}
+for (const question of megaBank.written) assert(question.model.length <= 80, `${question.id}: 解答例が80字を超えています`);
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-for (const file of ['styles.css', 'data.js', 'reinforcement-v0.3.0.js', 'administrative-focus-v0.4.0.js', 'administrative-trend-v0.5.0.js', 'official-topic-audit-v0.3.0.json', 'app.js', 'manifest.webmanifest', 'service-worker.js', 'icons/app-icon.svg']) {
+for (const file of ['styles.css', 'data.js', 'reinforcement-v0.3.0.js', 'administrative-focus-v0.4.0.js', 'administrative-trend-v0.5.0.js', 'mega-bank-v1.0.0.js', 'official-topic-audit-v0.3.0.json', 'app.js', 'manifest.webmanifest', 'service-worker.js', 'icons/app-icon.svg']) {
   assert(fs.existsSync(path.join(root, file)), `${file} がありません`);
 }
 assert(html.includes('https://gyosei-shiken.or.jp/doc/exam/index.html'));
@@ -116,12 +151,14 @@ assert(html.includes('公式問題本文は転載していません'));
 assert(html.includes('reinforcement-v0.3.0.js'));
 assert(html.includes('administrative-focus-v0.4.0.js'));
 assert(html.includes('administrative-trend-v0.5.0.js'));
+assert(html.includes('mega-bank-v1.0.0.js'));
 assert(html.includes('公式問題300問を分野別に分析'));
-assert(html.includes('行政法の独自問題95問＝本試験19問×5年分相当の演習量'));
+assert(html.includes('全1000問・行政法396問の独自問題バンク'));
 assert(fs.readFileSync(path.join(root, 'app.js'), 'utf8').includes("gyoseishoshi-pass:learning:v1"));
 assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./reinforcement-v0.3.0.js'));
 assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./administrative-focus-v0.4.0.js'));
 assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./administrative-trend-v0.5.0.js'));
+assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./mega-bank-v1.0.0.js'));
 assert(fs.readFileSync(path.join(root, 'app.js'), 'utf8').includes("'start-admin-priority'"));
 assert(audit.copyright_policy.includes('問題本文は収録せず'));
 assert(!html.includes('shihoshoshi-pass'));
@@ -129,5 +166,5 @@ assert(!html.includes('shihoshoshi-pass'));
 console.log(JSON.stringify({
   passed: true,
   counts: { subjects: data.subjects.length, lessons: data.lessons.length, ox: data.ox.length, five: data.five.length, multi: data.multi.length, written: data.written.length },
-  checks: ['unique IDs', 'subject and lesson references', 'answer ranges', 'e-Gov links', '7 administrative lessons', '7 diagrams', '95 administrative questions', '11 predicted-priority additions', 'S/A priority metadata', '300-question topic audit', 'trend metadata', 'official past-exam link', 'separate storage key', 'PWA assets']
+  checks: ['exactly 1000 questions', 'unique IDs', 'subject and lesson references', 'answer ranges', '5 unique options', '8 unique multi-choice words', 'written answer length', 'e-Gov links', '7 administrative lessons', '7 diagrams', '396 administrative questions', '120-concept mega bank', 'S/A priority metadata', '300-question topic audit', 'official past-exam link', 'separate storage key', 'PWA assets']
 }, null, 2));

@@ -55,6 +55,29 @@
     DATA.version = adminTrend.version;
     DATA.adminTrendLoaded = true;
   }
+  const megaBank = window.GYOPASS_MEGA_BANK;
+  if (megaBank && !DATA.megaBankLoaded) {
+    DATA.ox.push(...megaBank.ox);
+    DATA.five.push(...megaBank.five);
+    DATA.multi.push(...megaBank.multi);
+    DATA.written.push(...megaBank.written);
+    [...megaBank.ox, ...megaBank.five, ...megaBank.multi, ...megaBank.written].forEach(question => {
+      if (question.subject !== 'administrative' || !adminTrend) return;
+      const priority = adminTrend.priorities[question.lessonId];
+      if (!priority) return;
+      question.priority = `${priority.level} ${priority.label}`;
+      question.priorityLevel = priority.level;
+      question.priorityScore = priority.score;
+      question.priorityRank = priority.rank;
+      question.priorityForecast = priority.forecast;
+      question.priorityReason = priority.reason;
+    });
+    const byPriority = (a, b) => (b.priorityScore || 0) - (a.priorityScore || 0) || String(a.id).localeCompare(String(b.id));
+    DATA.multi.sort(byPriority);
+    DATA.written.sort(byPriority);
+    DATA.version = megaBank.version;
+    DATA.megaBankLoaded = true;
+  }
   const STORAGE_KEY = 'gyoseishoshi-pass:learning:v1';
   const VIEWS = ['home', 'texts', 'lesson', 'quiz', 'multi', 'written', 'stats'];
   const DEFAULT_STATE = {
@@ -371,7 +394,7 @@
     const saved = session.mode === 'review' && !session.attempted.has(question.id) ? null : savedAnswer;
     $('quizCounter').textContent = `${session.index + 1} / ${session.questions.length}`;
     $('quizProgress').value = (session.index + 1) / session.questions.length * 100;
-    $('questionMeta').innerHTML = `<span>${subjectById(question.subject).name}</span><span>${question.type === 'ox' ? '○×' : '5肢択一'}</span><span>オリジナル</span>${question.priority ? `<span class="priority-badge priority-${question.priorityLevel.toLowerCase()}">${question.priority}</span>` : question.focus ? '<span>行政法重点</span>' : question.trend ? '<span>過去問傾向補強</span>' : ''}`;
+    $('questionMeta').innerHTML = `<span>${subjectById(question.subject).name}</span><span>${question.type === 'ox' ? '○×' : '5肢択一'}</span><span>オリジナル</span>${question.priority ? `<span class="priority-badge priority-${question.priorityLevel.toLowerCase()}">${question.priority}</span>` : question.mega ? '<span>1000問バンク</span>' : question.focus ? '<span>行政法重点</span>' : question.trend ? '<span>過去問傾向補強</span>' : ''}`;
     $('questionText').textContent = question.text;
     const options = $('questionOptions');
     options.replaceChildren();
@@ -481,7 +504,7 @@
     root.replaceChildren();
     const meta = document.createElement('div');
     meta.className = 'question-meta';
-    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${multiIndex + 1} / ${DATA.multi.length}</span><span>オリジナル</span>${item.priority ? `<span class="priority-badge priority-${item.priorityLevel.toLowerCase()}">${item.priority}</span>` : item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
+    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${multiIndex + 1} / ${DATA.multi.length}</span><span>オリジナル</span>${item.priority ? `<span class="priority-badge priority-${item.priorityLevel.toLowerCase()}">${item.priority}</span>` : item.mega ? '<span>1000問バンク</span>' : item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
     const title = document.createElement('h3');
     title.textContent = item.title;
     const prompt = document.createElement('p');
@@ -556,7 +579,7 @@
     root.replaceChildren();
     const meta = document.createElement('div');
     meta.className = 'question-meta';
-    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${writtenIndex + 1} / ${DATA.written.length}</span><span>オリジナル</span>${item.priority ? `<span class="priority-badge priority-${item.priorityLevel.toLowerCase()}">${item.priority}</span>` : item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
+    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${writtenIndex + 1} / ${DATA.written.length}</span><span>オリジナル</span>${item.priority ? `<span class="priority-badge priority-${item.priorityLevel.toLowerCase()}">${item.priority}</span>` : item.mega ? '<span>1000問バンク</span>' : item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
     const title = document.createElement('h3');
     title.textContent = item.title;
     const prompt = document.createElement('p');

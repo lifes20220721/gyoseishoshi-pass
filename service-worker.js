@@ -1,5 +1,5 @@
-const CACHE = 'gyoseishoshi-pass-v0.5.0';
-const ASSETS = ['./', './index.html', './styles.css', './data.js', './reinforcement-v0.3.0.js', './administrative-focus-v0.4.0.js', './administrative-trend-v0.5.0.js', './app.js', './manifest.webmanifest', './icons/app-icon.svg'];
+const CACHE = 'gyoseishoshi-pass-v1.0.0';
+const ASSETS = ['./', './index.html', './styles.css', './data.js', './reinforcement-v0.3.0.js', './administrative-focus-v0.4.0.js', './administrative-trend-v0.5.0.js', './mega-bank-v1.0.0.js', './app.js', './manifest.webmanifest', './icons/app-icon.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
