@@ -1,0 +1,2 @@
+# AdSense承認後、本人の16桁のパブリッシャーIDへ置き換えて ads.txt として公開します。
+google.com, pub-REPLACE_WITH_YOUR_ID, DIRECT, f08c47fec0942fa0

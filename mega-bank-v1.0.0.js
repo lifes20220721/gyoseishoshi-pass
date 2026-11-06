@@ -254,5 +254,5 @@ window.GYOPASS_MEGA_BANK = (() => {
     trend:trend(item.term)
   }));
 
-  return { version:'1.0.0', concepts:allConcepts.length, ox, five, multi, written };
+  return { version:'1.1.0', concepts:allConcepts.length, ox, five, multi, written };
 })();

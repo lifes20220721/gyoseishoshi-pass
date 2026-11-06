@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#173f5f">
   <meta name="description" content="行政法を重点強化し、全1000問のオリジナル問題と科目別テキスト・図解で学ぶ行政書士試験サイト。">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://lifes20220721.github.io/gyoseishoshi-pass/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:site_name" content="行政書士PASS">
+  <meta property="og:title" content="行政書士PASS | 全1000問で学ぶ">
+  <meta property="og:description" content="行政法を重点強化した、無料で学べる行政書士試験の科目別テキスト・図解・独自問題1000問。">
+  <meta property="og:url" content="https://lifes20220721.github.io/gyoseishoshi-pass/">
+  <meta name="twitter:card" content="summary">
   <title>行政書士PASS | オリジナル問題で学ぶ</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
@@ -15,6 +24,9 @@
   <script defer src="administrative-trend-v0.5.0.js"></script>
   <script defer src="mega-bank-v1.0.0.js"></script>
   <script defer src="app.js"></script>
+  <script defer src="monetization-config.js"></script>
+  <script defer src="monetization.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"行政書士PASS","url":"https://lifes20220721.github.io/gyoseishoshi-pass/","description":"行政書士試験の科目別テキスト、図解、独自問題1000問を無料で学べる非公式学習サイト","inLanguage":"ja","publisher":{"@type":"Person","name":"lifes20220721","url":"https://github.com/lifes20220721"}}</script>
 </head>
 <body>
   <a class="skip-link" href="#app">本文へ移動</a>
@@ -41,6 +53,11 @@
         </div>
         <button class="primary large" data-action="start-quick" type="button">10問クイック演習</button>
       </section>
+
+      <aside class="ad-container hidden" data-ad-placement="homeTop" aria-label="広告">
+        <span class="ad-label">広告</span>
+        <ins class="adsbygoogle" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      </aside>
 
       <section class="panel exam-map" aria-labelledby="examMapTitle">
         <div class="section-heading">
@@ -134,6 +151,20 @@
           </button>
         </div>
       </section>
+
+      <section class="panel sustainability-panel" aria-labelledby="sustainabilityTitle">
+        <div>
+          <p class="kicker">SUSTAINABLE FREE ACCESS</p>
+          <h2 id="sustainabilityTitle">無料公開を続けるために</h2>
+          <p>本サイトは広告・アフィリエイト収益を運営費と教材改善に充てる方針です。広告主や提携先が、問題・解説・重要度の評価に関与することはありません。</p>
+        </div>
+        <a class="policy-link" href="terms.html#advertising">広告・収益化方針を見る</a>
+      </section>
+
+      <aside class="ad-container hidden" data-ad-placement="homeBottom" aria-label="広告">
+        <span class="ad-label">広告</span>
+        <ins class="adsbygoogle" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      </aside>
 
       <section class="panel official-card" aria-labelledby="officialTitle">
         <div>
@@ -231,9 +262,26 @@
   </main>
 
   <footer>
-    <p>行政書士PASS Ver.1.0.0｜全1000問・オリジナル教材・非公式サイト</p>
+    <p>行政書士PASS Ver.1.1.0｜全1000問・オリジナル教材・非公式サイト</p>
+    <nav class="footer-nav" aria-label="サイト情報">
+      <a href="privacy.html">プライバシーポリシー</a>
+      <a href="terms.html">利用規約・免責事項</a>
+      <a href="contact.html">運営・お問い合わせ</a>
+      <a href="sources.html">出典・教材利用</a>
+      <button class="footer-button" data-consent-settings type="button">広告設定</button>
+    </nav>
     <p><a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener noreferrer">e-Gov法令検索</a> · <button class="footer-button" data-action="reset" type="button">学習履歴を初期化</button></p>
   </footer>
+  <aside id="consentBanner" class="consent-banner hidden" aria-labelledby="consentTitle" aria-live="polite">
+    <div>
+      <strong id="consentTitle">広告とCookieの設定</strong>
+      <p>無料公開の維持を目的として広告を掲載する場合があります。広告配信を許可すると、配信事業者がCookie等を利用することがあります。詳しくは<a href="privacy.html">プライバシーポリシー</a>をご確認ください。</p>
+    </div>
+    <div class="consent-actions">
+      <button data-consent="reject" type="button">許可しない</button>
+      <button class="primary" data-consent="accept" type="button">広告を許可する</button>
+    </div>
+  </aside>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 </body>
 </html>

@@ -60,7 +60,7 @@ const audit = JSON.parse(fs.readFileSync(path.join(root, 'official-topic-audit-v
 
 assert.equal(data.subjects.length, 6);
 assert.equal(data.lessons.length, 20);
-assert.equal(data.version, '1.0.0');
+assert.equal(data.version, '1.1.0');
 assert.equal(data.ox.length, 341);
 assert.equal(data.five.length, 506);
 assert.equal(data.multi.length, 48);
@@ -143,7 +143,7 @@ for (const question of megaBank.multi) {
 for (const question of megaBank.written) assert(question.model.length <= 80, `${question.id}: 解答例が80字を超えています`);
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-for (const file of ['styles.css', 'data.js', 'reinforcement-v0.3.0.js', 'administrative-focus-v0.4.0.js', 'administrative-trend-v0.5.0.js', 'mega-bank-v1.0.0.js', 'official-topic-audit-v0.3.0.json', 'app.js', 'manifest.webmanifest', 'service-worker.js', 'icons/app-icon.svg']) {
+for (const file of ['styles.css', 'legal.css', 'data.js', 'reinforcement-v0.3.0.js', 'administrative-focus-v0.4.0.js', 'administrative-trend-v0.5.0.js', 'mega-bank-v1.0.0.js', 'official-topic-audit-v0.3.0.json', 'app.js', 'monetization-config.js', 'monetization.js', 'privacy.html', 'terms.html', 'contact.html', 'sources.html', 'robots.txt', 'sitemap.xml', 'MONETIZATION.md', 'ads.txt.example', 'manifest.webmanifest', 'service-worker.js', 'icons/app-icon.svg']) {
   assert(fs.existsSync(path.join(root, file)), `${file} がありません`);
 }
 assert(html.includes('https://gyosei-shiken.or.jp/doc/exam/index.html'));
@@ -154,17 +154,52 @@ assert(html.includes('administrative-trend-v0.5.0.js'));
 assert(html.includes('mega-bank-v1.0.0.js'));
 assert(html.includes('公式問題300問を分野別に分析'));
 assert(html.includes('全1000問・行政法396問の独自問題バンク'));
+assert(html.includes('<link rel="canonical" href="https://lifes20220721.github.io/gyoseishoshi-pass/">'));
+assert(html.includes('application/ld+json'));
+for (const page of ['privacy.html', 'terms.html', 'contact.html', 'sources.html']) assert(html.includes(`href="${page}"`), `${page} へのリンクがありません`);
+assert(html.includes('monetization-config.js'));
+assert(html.includes('monetization.js'));
 assert(fs.readFileSync(path.join(root, 'app.js'), 'utf8').includes("gyoseishoshi-pass:learning:v1"));
 assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./reinforcement-v0.3.0.js'));
 assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./administrative-focus-v0.4.0.js'));
 assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./administrative-trend-v0.5.0.js'));
 assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./mega-bank-v1.0.0.js'));
+for (const file of ['./monetization-config.js', './monetization.js', './privacy.html', './terms.html', './contact.html', './sources.html']) {
+  assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes(file), `${file} がオフライン対象ではありません`);
+}
 assert(fs.readFileSync(path.join(root, 'app.js'), 'utf8').includes("'start-admin-priority'"));
 assert(audit.copyright_policy.includes('問題本文は収録せず'));
 assert(!html.includes('shihoshoshi-pass'));
 
+const monetizationConfig = fs.readFileSync(path.join(root, 'monetization-config.js'), 'utf8');
+const monetization = fs.readFileSync(path.join(root, 'monetization.js'), 'utf8');
+assert(monetizationConfig.includes('enabled: false'), '広告ID未設定時は無効である必要があります');
+assert(monetizationConfig.includes("adsenseClient: ''"), '架空の広告IDを設定してはいけません');
+assert(!fs.existsSync(path.join(root, 'ads.txt')), '本人の広告IDがない状態でads.txtを公開してはいけません');
+assert(monetization.includes('pagead2.googlesyndication.com'));
+assert(monetization.includes('clientIsValid'));
+assert(monetization.includes('gyoseishoshi-pass:advertising-consent:v1'));
+assert(!html.includes('pagead2.googlesyndication.com'), '広告同意前に外部広告を直接読み込んではいけません');
+
+const privacy = fs.readFileSync(path.join(root, 'privacy.html'), 'utf8');
+const terms = fs.readFileSync(path.join(root, 'terms.html'), 'utf8');
+const contact = fs.readFileSync(path.join(root, 'contact.html'), 'utf8');
+const sources = fs.readFileSync(path.join(root, 'sources.html'), 'utf8');
+assert(privacy.includes('広告・アフィリエイト'));
+assert(privacy.includes('localStorage'));
+assert(terms.includes('広告・収益化方針'));
+assert(terms.includes('免責'));
+assert(contact.includes('life.s.20220721@gmail.com'));
+assert(contact.includes('gyoseishoshi-pass/issues/new'));
+assert(sources.includes('公式過去問本文を収録せず'));
+assert(sources.includes('転載に許諾が必要'));
+assert(fs.readFileSync(path.join(root, 'robots.txt'), 'utf8').includes('sitemap.xml'));
+assert(fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8').includes('<urlset'));
+assert(fs.readFileSync(path.join(root, 'MONETIZATION.md'), 'utf8').includes('独自ドメイン'));
+assert(fs.readFileSync(path.join(root, 'MONETIZATION.md'), 'utf8').includes('Google AdSense'));
+
 console.log(JSON.stringify({
   passed: true,
   counts: { subjects: data.subjects.length, lessons: data.lessons.length, ox: data.ox.length, five: data.five.length, multi: data.multi.length, written: data.written.length },
-  checks: ['exactly 1000 questions', 'unique IDs', 'subject and lesson references', 'answer ranges', '5 unique options', '8 unique multi-choice words', 'written answer length', 'e-Gov links', '7 administrative lessons', '7 diagrams', '396 administrative questions', '120-concept mega bank', 'S/A priority metadata', '300-question topic audit', 'official past-exam link', 'separate storage key', 'PWA assets']
+  checks: ['exactly 1000 questions', 'unique IDs', 'subject and lesson references', 'answer ranges', '5 unique options', '8 unique multi-choice words', 'written answer length', 'e-Gov links', '7 administrative lessons', '7 diagrams', '396 administrative questions', '120-concept mega bank', 'S/A priority metadata', '300-question topic audit', 'SEO canonical and sitemap', 'privacy and terms pages', 'operator and source disclosure', 'consent-gated ad loader', 'empty ad ID by default', 'separate storage keys', 'PWA assets']
 }, null, 2));
