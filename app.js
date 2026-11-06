@@ -11,6 +11,27 @@
     DATA.version = reinforcement.version;
     DATA.reinforcementLoaded = true;
   }
+  const adminFocus = window.GYOPASS_ADMIN_FOCUS;
+  if (adminFocus && !DATA.adminFocusLoaded) {
+    DATA.lessons.push(...adminFocus.newLessons);
+    Object.entries(adminFocus.enhancements).forEach(([id, enhancement]) => {
+      const lesson = DATA.lessons.find(item => item.id === id);
+      if (!lesson) return;
+      lesson.sections.push(...enhancement.sections);
+      lesson.diagrams = [...(lesson.diagrams || []), ...(enhancement.diagrams || [])];
+    });
+    const orderedAdmin = adminFocus.lessonOrder.map(id => DATA.lessons.find(item => item.id === id)).filter(Boolean);
+    const otherLessons = DATA.lessons.filter(item => item.subject !== 'administrative');
+    DATA.lessons.splice(0, DATA.lessons.length, ...orderedAdmin, ...otherLessons);
+    DATA.ox.push(...adminFocus.ox);
+    DATA.five.push(...adminFocus.five);
+    DATA.multi.push(...adminFocus.multi);
+    DATA.written.push(...adminFocus.written);
+    DATA.version = adminFocus.version;
+    DATA.adminFocusLoaded = true;
+    const administrative = DATA.subjects.find(item => item.id === 'administrative');
+    if (administrative) administrative.description = '総論・行政作用・手続・救済・国家賠償・地方自治';
+  }
   const STORAGE_KEY = 'gyoseishoshi-pass:learning:v1';
   const VIEWS = ['home', 'texts', 'lesson', 'quiz', 'multi', 'written', 'stats'];
   const DEFAULT_STATE = {
@@ -189,6 +210,7 @@
       paragraph.textContent = section.body;
       body.append(heading, paragraph);
     });
+    (lesson.diagrams || []).forEach(diagram => body.append(renderLessonDiagram(diagram)));
     $('lessonPoint').innerHTML = `<strong>確認ポイント</strong><br>${lesson.point}`;
     const sources = $('lessonSources');
     sources.replaceChildren();
@@ -206,6 +228,52 @@
     setResume('lesson', { lessonId: id });
     showRoute('lesson');
     updateLessonNav();
+  }
+
+  function renderLessonDiagram(diagram) {
+    const figure = document.createElement('figure');
+    figure.className = `lesson-diagram ${diagram.type === 'flow' ? 'flow-diagram' : 'compare-diagram'}`;
+    const label = document.createElement('p');
+    label.className = 'diagram-label';
+    label.textContent = '図解';
+    const title = document.createElement('h3');
+    title.textContent = diagram.title;
+    const content = document.createElement('div');
+    content.className = 'diagram-content';
+    if (diagram.type === 'flow') {
+      diagram.items.forEach((item, index) => {
+        const step = document.createElement('div');
+        step.className = 'diagram-step';
+        step.textContent = item;
+        content.append(step);
+        if (index < diagram.items.length - 1) {
+          const arrow = document.createElement('span');
+          arrow.className = 'diagram-arrow';
+          arrow.setAttribute('aria-hidden', 'true');
+          arrow.textContent = '→';
+          content.append(arrow);
+        }
+      });
+    } else {
+      diagram.groups.forEach(group => {
+        const card = document.createElement('section');
+        card.className = 'diagram-group';
+        const heading = document.createElement('strong');
+        heading.textContent = group.title;
+        const list = document.createElement('ul');
+        group.items.forEach(item => {
+          const row = document.createElement('li');
+          row.textContent = item;
+          list.append(row);
+        });
+        card.append(heading, list);
+        content.append(card);
+      });
+    }
+    const caption = document.createElement('figcaption');
+    caption.textContent = diagram.caption;
+    figure.append(label, title, content, caption);
+    return figure;
   }
 
   function updateLessonNav() {
@@ -277,7 +345,7 @@
     const saved = session.mode === 'review' && !session.attempted.has(question.id) ? null : savedAnswer;
     $('quizCounter').textContent = `${session.index + 1} / ${session.questions.length}`;
     $('quizProgress').value = (session.index + 1) / session.questions.length * 100;
-    $('questionMeta').innerHTML = `<span>${subjectById(question.subject).name}</span><span>${question.type === 'ox' ? '○×' : '5肢択一'}</span><span>オリジナル</span>${question.trend ? '<span>過去問傾向補強</span>' : ''}`;
+    $('questionMeta').innerHTML = `<span>${subjectById(question.subject).name}</span><span>${question.type === 'ox' ? '○×' : '5肢択一'}</span><span>オリジナル</span>${question.focus ? '<span>行政法重点</span>' : question.trend ? '<span>過去問傾向補強</span>' : ''}`;
     $('questionText').textContent = question.text;
     const options = $('questionOptions');
     options.replaceChildren();
@@ -379,7 +447,7 @@
     root.replaceChildren();
     const meta = document.createElement('div');
     meta.className = 'question-meta';
-    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${multiIndex + 1} / ${DATA.multi.length}</span><span>オリジナル</span>${item.trend ? '<span>過去問傾向補強</span>' : ''}`;
+    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${multiIndex + 1} / ${DATA.multi.length}</span><span>オリジナル</span>${item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
     const title = document.createElement('h3');
     title.textContent = item.title;
     const prompt = document.createElement('p');
@@ -454,7 +522,7 @@
     root.replaceChildren();
     const meta = document.createElement('div');
     meta.className = 'question-meta';
-    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${writtenIndex + 1} / ${DATA.written.length}</span><span>オリジナル</span>${item.trend ? '<span>過去問傾向補強</span>' : ''}`;
+    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${writtenIndex + 1} / ${DATA.written.length}</span><span>オリジナル</span>${item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
     const title = document.createElement('h3');
     title.textContent = item.title;
     const prompt = document.createElement('p');
