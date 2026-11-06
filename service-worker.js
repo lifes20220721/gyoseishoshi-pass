@@ -1,4 +1,4 @@
-const CACHE = 'gyoseishoshi-pass-v0.1.0';
+const CACHE = 'gyoseishoshi-pass-v0.2.0';
 const ASSETS = ['./', './index.html', './styles.css', './data.js', './app.js', './manifest.webmanifest', './icons/app-icon.svg'];
 
 self.addEventListener('install', event => {

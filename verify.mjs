@@ -9,11 +9,11 @@ vm.runInNewContext(fs.readFileSync(path.join(root, 'data.js'), 'utf8'), context)
 const data = context.window.GYOPASS_DATA;
 
 assert.equal(data.subjects.length, 6);
-assert.equal(data.lessons.length, 13);
-assert.equal(data.ox.length, 24);
-assert.equal(data.five.length, 6);
+assert.equal(data.lessons.length, 18);
+assert.equal(data.ox.length, 34);
+assert.equal(data.five.length, 8);
 assert.equal(data.multi.length, 2);
-assert.equal(data.written.length, 4);
+assert.equal(data.written.length, 5);
 
 const subjectIds = new Set(data.subjects.map(item => item.id));
 const lessonIds = new Set(data.lessons.map(item => item.id));

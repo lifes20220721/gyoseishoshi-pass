@@ -78,6 +78,20 @@ button.large { padding: 14px 18px; }
 .link-stack a, .source-links a { padding: 10px 12px; color: #175d83; background: #f2f7f7; border-radius: 9px; text-decoration: none; font-weight: 700; }
 .button-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .muted { color: var(--muted); font-size: 13px; }
+.small-link { font-size: 13px; font-weight: 700; }
+.exam-group-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; }
+.exam-group { padding: 16px; border-radius: 12px; }
+.law-group { background: #e8f3f1; border: 1px solid #c4dfda; }
+.knowledge-group { background: #f1edf5; border: 1px solid #d9cce3; }
+.exam-group-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.exam-group-head strong { font-size: 18px; }
+.exam-group-head span { padding: 4px 9px; color: white; background: var(--navy); border-radius: 20px; font-size: 12px; font-weight: 800; }
+.exam-group p { margin: 5px 0 9px; color: var(--muted); font-size: 12px; }
+.exam-group ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.exam-group li { padding: 5px 8px; background: rgba(255,255,255,.72); border-radius: 7px; font-size: 13px; font-weight: 700; }
+.admin-scope { margin-top: 12px; color: var(--muted); font-size: 13px; }
+.admin-scope summary { color: var(--navy); cursor: pointer; font-weight: 700; }
+.admin-scope p { margin-bottom: 0; line-height: 1.7; }
 
 .resume-card { margin-bottom: 14px; padding: 15px 17px; color: white; background: var(--navy); border-radius: 13px; box-shadow: var(--shadow); }
 .resume-card p { margin: 0 0 10px; }
@@ -147,6 +161,7 @@ footer p { margin: 5px; }
   .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 9px; }
   .menu-card { min-height: 122px; padding: 14px; }
   .official-card, .utility-panel { grid-template-columns: 1fr; }
+  .exam-group-grid { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .stat { padding: 10px 5px; }
   .stat strong { font-size: 20px; }

@@ -31,11 +31,41 @@
 
       <section class="hero panel">
         <div>
-          <span class="pill">初期版 Ver.0.1.0</span>
+          <span class="pill">科目構成版 Ver.0.2.0</span>
           <h2>今日の学習を、すぐ始める</h2>
           <p>行政法を軸に6科目を横断。教材と問題はすべて本サイト独自作成で、公式過去問本文は収録していません。</p>
         </div>
         <button class="primary large" data-action="start-quick" type="button">10問クイック演習</button>
+      </section>
+
+      <section class="panel exam-map" aria-labelledby="examMapTitle">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">OFFICIAL EXAM SCOPE</p>
+            <h2 id="examMapTitle">試験に必要な科目</h2>
+          </div>
+          <a class="small-link" href="https://gyosei-shiken.or.jp/doc/guide/guide.html" target="_blank" rel="noopener noreferrer">公式試験案内 ↗</a>
+        </div>
+        <div class="exam-group-grid">
+          <article class="exam-group law-group">
+            <div class="exam-group-head"><strong>法令等</strong><span>46題</span></div>
+            <p>択一式・多肢選択式・40字記述式</p>
+            <ul>
+              <li>憲法</li><li>行政法</li><li>民法</li><li>商法・会社法</li><li>基礎法学</li>
+            </ul>
+          </article>
+          <article class="exam-group knowledge-group">
+            <div class="exam-group-head"><strong>基礎知識</strong><span>14題</span></div>
+            <p>択一式</p>
+            <ul>
+              <li>一般知識</li><li>行政書士法等</li><li>情報通信・個人情報保護</li><li>文章理解</li>
+            </ul>
+          </article>
+        </div>
+        <details class="admin-scope">
+          <summary>行政法の内訳を見る</summary>
+          <p>行政法の一般的な法理論、行政手続法、行政不服審査法、行政事件訴訟法、国家賠償法、地方自治法を中心に学習します。</p>
+        </details>
       </section>
 
       <section aria-labelledby="progressTitle" class="panel">
@@ -109,7 +139,7 @@
         <button class="back-button" data-route="home" type="button">← ホーム</button>
         <div><p class="kicker">TEXT LIBRARY</p><h2 id="textsTitle">科目別テキスト</h2></div>
       </div>
-      <p class="basis-note">教材基準日：2026年4月1日。現行法確認日：2026年11月6日。受験年度の試験案内と最新法令を必ず確認してください。</p>
+      <p class="basis-note">令和8年度の公式法令基準日：2026年4月1日。現行法確認日：2026年11月6日。受験年度の試験案内と最新法令を必ず確認してください。</p>
       <div id="subjectList" class="subject-list"></div>
     </section>
 
@@ -174,7 +204,7 @@
   </main>
 
   <footer>
-    <p>行政書士PASS Ver.0.1.0｜オリジナル教材・非公式サイト</p>
+    <p>行政書士PASS Ver.0.2.0｜オリジナル教材・非公式サイト</p>
     <p><a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener noreferrer">e-Gov法令検索</a> · <button class="footer-button" data-action="reset" type="button">学習履歴を初期化</button></p>
   </footer>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
