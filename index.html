@@ -12,6 +12,7 @@
   <script defer src="data.js"></script>
   <script defer src="reinforcement-v0.3.0.js"></script>
   <script defer src="administrative-focus-v0.4.0.js"></script>
+  <script defer src="administrative-trend-v0.5.0.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -33,7 +34,7 @@
 
       <section class="hero panel">
         <div>
-          <span class="pill">行政法重点強化版 Ver.0.4.0</span>
+          <span class="pill">行政法5年分演習版 Ver.0.5.0</span>
           <h2>今日の学習を、すぐ始める</h2>
           <p>行政法7講義を軸に6科目を横断。濃いテキスト・図解・独自問題で、制度を比較しながら学べます。</p>
         </div>
@@ -68,7 +69,29 @@
           <summary>行政法の内訳を見る</summary>
           <p>行政法の一般的な法理論、行政手続法、行政不服審査法、行政事件訴訟法、国家賠償法、地方自治法を中心に学習します。</p>
         </details>
-        <p class="trend-summary"><strong>行政法を7講義・46問追加で重点強化。</strong><br>2021〜2025年度の公式問題300問を分野別に分析し、独自問題を○×97問・5肢択一22問・多肢選択式7問・40字記述式13問収録しています。公式問題本文は転載していません。</p>
+        <p class="trend-summary"><strong>行政法の独自問題95問＝本試験19問×5年分相当の演習量。</strong><br>2021〜2025年度の公式問題300問を分野別に分析し、独自問題を○×101問・5肢択一26問・多肢選択式8問・40字記述式15問収録しています。公式問題本文は転載していません。</p>
+      </section>
+
+      <section class="panel priority-panel" aria-labelledby="priorityTitle">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">TREND FORECAST</p>
+            <h2 id="priorityTitle">行政法の予測重要度</h2>
+          </div>
+          <strong class="forecast-total">全95問</strong>
+        </div>
+        <p class="priority-intro">直近5年の出題配分、制度横断性、多肢・記述への展開可能性から学習優先度を算定しています。</p>
+        <ol class="priority-list">
+          <li><span class="rank-badge s-rank">S</span><strong>行政事件訴訟法</strong><small>処分性・原告適格・執行停止・訴訟類型</small></li>
+          <li><span class="rank-badge s-rank">S</span><strong>行政不服審査法</strong><small>期間・審理員・裁決・執行停止</small></li>
+          <li><span class="rank-badge s-rank">S</span><strong>行政手続法</strong><small>申請・不利益処分・行政指導・届出</small></li>
+          <li><span class="rank-badge s-rank">S</span><strong>行政行為</strong><small>効力・瑕疵・附款・裁量</small></li>
+          <li><span class="rank-badge s-rank">S</span><strong>地方自治法</strong><small>住民監査・住民訴訟・議会と長</small></li>
+          <li><span class="rank-badge a-rank">A</span><strong>行政法総論</strong><small>法律の留保・行政組織・実効性確保</small></li>
+          <li><span class="rank-badge a-rank">A</span><strong>国家賠償法</strong><small>1条・2条・求償・営造物</small></li>
+        </ol>
+        <button class="primary priority-start" data-action="start-admin-priority" type="button">重要度の高い順に解く</button>
+        <p class="forecast-disclaimer">※重要度は学習順を決めるための独自予測で、将来の出題を保証するものではありません。</p>
       </section>
 
       <section aria-labelledby="progressTitle" class="panel">
@@ -207,7 +230,7 @@
   </main>
 
   <footer>
-    <p>行政書士PASS Ver.0.4.0｜オリジナル教材・非公式サイト</p>
+    <p>行政書士PASS Ver.0.5.0｜オリジナル教材・非公式サイト</p>
     <p><a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener noreferrer">e-Gov法令検索</a> · <button class="footer-button" data-action="reset" type="button">学習履歴を初期化</button></p>
   </footer>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>

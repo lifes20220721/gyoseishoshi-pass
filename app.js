@@ -32,6 +32,29 @@
     const administrative = DATA.subjects.find(item => item.id === 'administrative');
     if (administrative) administrative.description = '総論・行政作用・手続・救済・国家賠償・地方自治';
   }
+  const adminTrend = window.GYOPASS_ADMIN_TREND;
+  if (adminTrend && !DATA.adminTrendLoaded) {
+    DATA.ox.push(...adminTrend.ox);
+    DATA.five.push(...adminTrend.five);
+    DATA.multi.push(...adminTrend.multi);
+    DATA.written.push(...adminTrend.written);
+    [...DATA.ox, ...DATA.five, ...DATA.multi, ...DATA.written].forEach(question => {
+      if (question.subject !== 'administrative') return;
+      const priority = adminTrend.priorities[question.lessonId];
+      if (!priority) return;
+      question.priority = `${priority.level} ${priority.label}`;
+      question.priorityLevel = priority.level;
+      question.priorityScore = priority.score;
+      question.priorityRank = priority.rank;
+      question.priorityForecast = priority.forecast;
+      question.priorityReason = priority.reason;
+    });
+    const byPriority = (a, b) => (b.priorityScore || 0) - (a.priorityScore || 0) || String(a.id).localeCompare(String(b.id));
+    DATA.multi.sort(byPriority);
+    DATA.written.sort(byPriority);
+    DATA.version = adminTrend.version;
+    DATA.adminTrendLoaded = true;
+  }
   const STORAGE_KEY = 'gyoseishoshi-pass:learning:v1';
   const VIEWS = ['home', 'texts', 'lesson', 'quiz', 'multi', 'written', 'stats'];
   const DEFAULT_STATE = {
@@ -300,6 +323,9 @@
     else if (mode === 'lesson') questions = allPractice().filter(item => item.lessonId === originLessonId);
     else questions = [...DATA.ox];
     if (subject !== 'all' && mode !== 'review' && mode !== 'lesson') questions = questions.filter(item => item.subject === subject);
+    if (subject === 'administrative' && !['review', 'lesson'].includes(mode)) {
+      questions.sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0) || String(a.id).localeCompare(String(b.id)));
+    }
     return questions;
   }
 
@@ -345,7 +371,7 @@
     const saved = session.mode === 'review' && !session.attempted.has(question.id) ? null : savedAnswer;
     $('quizCounter').textContent = `${session.index + 1} / ${session.questions.length}`;
     $('quizProgress').value = (session.index + 1) / session.questions.length * 100;
-    $('questionMeta').innerHTML = `<span>${subjectById(question.subject).name}</span><span>${question.type === 'ox' ? '○×' : '5肢択一'}</span><span>オリジナル</span>${question.focus ? '<span>行政法重点</span>' : question.trend ? '<span>過去問傾向補強</span>' : ''}`;
+    $('questionMeta').innerHTML = `<span>${subjectById(question.subject).name}</span><span>${question.type === 'ox' ? '○×' : '5肢択一'}</span><span>オリジナル</span>${question.priority ? `<span class="priority-badge priority-${question.priorityLevel.toLowerCase()}">${question.priority}</span>` : question.focus ? '<span>行政法重点</span>' : question.trend ? '<span>過去問傾向補強</span>' : ''}`;
     $('questionText').textContent = question.text;
     const options = $('questionOptions');
     options.replaceChildren();
@@ -415,6 +441,14 @@
     note.className = 'trend-note';
     const title = document.createElement('strong');
     title.textContent = '過去問傾向との対応';
+    if (item.priority) {
+      const priority = document.createElement('p');
+      priority.className = 'priority-reason';
+      priority.textContent = `重要度 ${item.priority}・${item.priorityForecast}：${item.priorityReason}`;
+      note.append(title, priority);
+    } else {
+      note.append(title);
+    }
     const detail = document.createElement('p');
     detail.textContent = `${item.trend.years.join('・')}年度の公式問題で扱われた「${item.trend.scope}」を補強する独自問題です。問題文は転載していません。`;
     const link = document.createElement('a');
@@ -422,7 +456,7 @@
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
     link.textContent = '公式の過去の試験問題と正解を開く ↗';
-    note.append(title, detail, link);
+    note.append(detail, link);
     parent.append(note);
   }
 
@@ -447,7 +481,7 @@
     root.replaceChildren();
     const meta = document.createElement('div');
     meta.className = 'question-meta';
-    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${multiIndex + 1} / ${DATA.multi.length}</span><span>オリジナル</span>${item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
+    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${multiIndex + 1} / ${DATA.multi.length}</span><span>オリジナル</span>${item.priority ? `<span class="priority-badge priority-${item.priorityLevel.toLowerCase()}">${item.priority}</span>` : item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
     const title = document.createElement('h3');
     title.textContent = item.title;
     const prompt = document.createElement('p');
@@ -522,7 +556,7 @@
     root.replaceChildren();
     const meta = document.createElement('div');
     meta.className = 'question-meta';
-    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${writtenIndex + 1} / ${DATA.written.length}</span><span>オリジナル</span>${item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
+    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${writtenIndex + 1} / ${DATA.written.length}</span><span>オリジナル</span>${item.priority ? `<span class="priority-badge priority-${item.priorityLevel.toLowerCase()}">${item.priority}</span>` : item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
     const title = document.createElement('h3');
     title.textContent = item.title;
     const prompt = document.createElement('p');
@@ -650,6 +684,7 @@
     if (!action) return;
     const actions = {
       'start-quick': () => startQuiz('quick'),
+      'start-admin-priority': () => startQuiz('ox', { subject: 'administrative' }),
       'start-ox': () => startQuiz('ox'),
       'start-five': () => startQuiz('five'),
       'start-review': () => startQuiz('review'),
