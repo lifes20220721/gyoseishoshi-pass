@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173f5f">
+  <meta name="description" content="行政書士試験の科目別テキストとオリジナル問題で学ぶ、スマートフォン対応の学習サイト。">
+  <title>行政書士PASS | オリジナル問題で学ぶ</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="data.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#app">本文へ移動</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <p class="eyebrow">行政書士試験 学習サイト</p>
+        <h1><span aria-hidden="true">六</span> 行政書士PASS</h1>
+        <p class="header-copy">条文と理由から、迷わず一肢を選べる力へ。</p>
+      </div>
+      <button id="installButton" class="header-button hidden" type="button">アプリに追加</button>
+    </div>
+  </header>
+
+  <main id="app" class="app-shell" tabindex="-1">
+    <section id="homeView" class="view">
+      <div id="resumeCard" class="resume-card hidden" aria-live="polite"></div>
+
+      <section class="hero panel">
+        <div>
+          <span class="pill">初期版 Ver.0.1.0</span>
+          <h2>今日の学習を、すぐ始める</h2>
+          <p>行政法を軸に6科目を横断。教材と問題はすべて本サイト独自作成で、公式過去問本文は収録していません。</p>
+        </div>
+        <button class="primary large" data-action="start-quick" type="button">10問クイック演習</button>
+      </section>
+
+      <section aria-labelledby="progressTitle" class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">YOUR PROGRESS</p>
+            <h2 id="progressTitle">学習状況</h2>
+          </div>
+          <button class="text-button" data-route="stats" type="button">科目別成績を見る</button>
+        </div>
+        <div id="homeStats" class="stat-grid"></div>
+      </section>
+
+      <section aria-labelledby="learnTitle">
+        <div class="section-heading outside">
+          <div>
+            <p class="kicker">STUDY MENU</p>
+            <h2 id="learnTitle">学習メニュー</h2>
+          </div>
+        </div>
+        <div class="menu-grid">
+          <button class="menu-card featured" data-route="texts" type="button">
+            <span class="menu-icon" aria-hidden="true">読</span><strong>科目別テキスト</strong><small>要点・条文・確認ポイント</small>
+          </button>
+          <button class="menu-card" data-action="start-ox" type="button">
+            <span class="menu-icon" aria-hidden="true">○×</span><strong>一問一答</strong><small>オリジナル問題</small>
+          </button>
+          <button class="menu-card" data-action="start-five" type="button">
+            <span class="menu-icon" aria-hidden="true">五</span><strong>5肢択一</strong><small>本試験形式を意識</small>
+          </button>
+          <button class="menu-card" data-action="start-review" type="button">
+            <span class="menu-icon" aria-hidden="true">復</span><strong>間違い復習</strong><small id="wrongMenuCount">未復習 0問</small>
+          </button>
+          <button class="menu-card" data-action="start-multi" type="button">
+            <span class="menu-icon" aria-hidden="true">多</span><strong>多肢選択式</strong><small>語句を選んで完成</small>
+          </button>
+          <button class="menu-card" data-action="start-written" type="button">
+            <span class="menu-icon" aria-hidden="true">40</span><strong>記述式</strong><small>40字程度の答案練習</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel official-card" aria-labelledby="officialTitle">
+        <div>
+          <p class="kicker">OFFICIAL SOURCES</p>
+          <h2 id="officialTitle">公式情報・過去問</h2>
+          <p>問題の転載には試験研究センターの許諾が必要です。本サイトでは原文を収録せず、公式ページを別タブで案内します。</p>
+        </div>
+        <div class="link-stack">
+          <a href="https://gyosei-shiken.or.jp/doc/guide/guide.html" target="_blank" rel="noopener noreferrer">試験案内を開く <span aria-hidden="true">↗</span></a>
+          <a href="https://gyosei-shiken.or.jp/doc/exam/index.html" target="_blank" rel="noopener noreferrer">過去の試験問題と正解 <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+
+      <section class="panel utility-panel" aria-labelledby="dataTitle">
+        <div>
+          <h2 id="dataTitle">学習データ</h2>
+          <p class="muted">履歴はこの端末のブラウザに保存されます。端末変更前にバックアップしてください。</p>
+        </div>
+        <div class="button-row">
+          <button data-action="export" type="button">バックアップを保存</button>
+          <label class="button-like" for="importFile">バックアップを復元</label>
+          <input id="importFile" class="visually-hidden" type="file" accept="application/json">
+          <button data-action="install-help" type="button">ホーム画面への追加方法</button>
+        </div>
+      </section>
+    </section>
+
+    <section id="textsView" class="view hidden" aria-labelledby="textsTitle">
+      <div class="view-header">
+        <button class="back-button" data-route="home" type="button">← ホーム</button>
+        <div><p class="kicker">TEXT LIBRARY</p><h2 id="textsTitle">科目別テキスト</h2></div>
+      </div>
+      <p class="basis-note">教材基準日：2026年4月1日。現行法確認日：2026年11月6日。受験年度の試験案内と最新法令を必ず確認してください。</p>
+      <div id="subjectList" class="subject-list"></div>
+    </section>
+
+    <section id="lessonView" class="view hidden" aria-labelledby="lessonTitle">
+      <div class="view-header">
+        <button class="back-button" data-action="back-to-texts" type="button">← 科目一覧</button>
+        <span id="lessonSubject" class="pill"></span>
+      </div>
+      <article class="panel lesson-article">
+        <h2 id="lessonTitle"></h2>
+        <p id="lessonLead" class="lead"></p>
+        <div id="lessonBody"></div>
+        <aside id="lessonPoint" class="point-box"></aside>
+        <div id="lessonSources" class="source-links"></div>
+      </article>
+      <div class="sticky-actions">
+        <button data-action="lesson-prev" type="button">← 前のテキスト</button>
+        <button class="primary" data-action="lesson-quiz" type="button">関連問題を解く</button>
+        <button data-action="lesson-next" type="button">次のテキスト →</button>
+      </div>
+    </section>
+
+    <section id="quizView" class="view hidden" aria-labelledby="quizHeading">
+      <div class="view-header">
+        <button class="back-button" data-route="home" type="button">← ホーム</button>
+        <div><p id="quizModeLabel" class="kicker">PRACTICE</p><h2 id="quizHeading">問題演習</h2></div>
+      </div>
+      <div class="quiz-toolbar panel compact">
+        <label>科目<select id="quizSubject"></select></label>
+        <span id="quizCounter" class="counter"></span>
+      </div>
+      <progress id="quizProgress" max="100" value="0">0%</progress>
+      <article class="panel question-card">
+        <div id="questionMeta" class="question-meta"></div>
+        <h3 id="questionText"></h3>
+        <div id="questionOptions" class="option-list"></div>
+        <div id="questionFeedback" class="feedback hidden" aria-live="polite"></div>
+      </article>
+      <div class="sticky-actions">
+        <button id="previousQuestion" data-action="question-prev" type="button">← 前の問題</button>
+        <button id="relatedText" data-action="related-text" type="button">関連テキスト</button>
+        <button id="nextQuestion" class="primary" data-action="question-next" type="button">次の問題 →</button>
+      </div>
+    </section>
+
+    <section id="multiView" class="view hidden" aria-labelledby="multiTitle">
+      <div class="view-header"><button class="back-button" data-route="home" type="button">← ホーム</button><div><p class="kicker">MULTIPLE CHOICE</p><h2 id="multiTitle">多肢選択式</h2></div></div>
+      <article id="multiContent" class="panel question-card"></article>
+      <div class="sticky-actions"><button data-action="multi-prev" type="button">← 前の問題</button><button class="primary" data-action="multi-next" type="button">次の問題 →</button></div>
+    </section>
+
+    <section id="writtenView" class="view hidden" aria-labelledby="writtenTitle">
+      <div class="view-header"><button class="back-button" data-route="home" type="button">← ホーム</button><div><p class="kicker">WRITING</p><h2 id="writtenTitle">40字記述式</h2></div></div>
+      <article id="writtenContent" class="panel question-card"></article>
+      <div class="sticky-actions"><button data-action="written-prev" type="button">← 前の問題</button><button class="primary" data-action="written-next" type="button">次の問題 →</button></div>
+    </section>
+
+    <section id="statsView" class="view hidden" aria-labelledby="statsTitle">
+      <div class="view-header"><button class="back-button" data-route="home" type="button">← ホーム</button><div><p class="kicker">ANALYSIS</p><h2 id="statsTitle">科目別成績</h2></div></div>
+      <div id="statsContent"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>行政書士PASS Ver.0.1.0｜オリジナル教材・非公式サイト</p>
+    <p><a href="https://laws.e-gov.go.jp/" target="_blank" rel="noopener noreferrer">e-Gov法令検索</a> · <button class="footer-button" data-action="reset" type="button">学習履歴を初期化</button></p>
+  </footer>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+</body>
+</html>
