@@ -2,6 +2,15 @@
 
 (() => {
   const DATA = window.GYOPASS_DATA;
+  const reinforcement = window.GYOPASS_REINFORCEMENT;
+  if (reinforcement && !DATA.reinforcementLoaded) {
+    DATA.ox.push(...reinforcement.ox);
+    DATA.five.push(...reinforcement.five);
+    DATA.multi.push(...reinforcement.multi);
+    DATA.written.push(...reinforcement.written);
+    DATA.version = reinforcement.version;
+    DATA.reinforcementLoaded = true;
+  }
   const STORAGE_KEY = 'gyoseishoshi-pass:learning:v1';
   const VIEWS = ['home', 'texts', 'lesson', 'quiz', 'multi', 'written', 'stats'];
   const DEFAULT_STATE = {
@@ -268,7 +277,7 @@
     const saved = session.mode === 'review' && !session.attempted.has(question.id) ? null : savedAnswer;
     $('quizCounter').textContent = `${session.index + 1} / ${session.questions.length}`;
     $('quizProgress').value = (session.index + 1) / session.questions.length * 100;
-    $('questionMeta').innerHTML = `<span>${subjectById(question.subject).name}</span><span>${question.type === 'ox' ? '○×' : '5肢択一'}</span><span>オリジナル</span>`;
+    $('questionMeta').innerHTML = `<span>${subjectById(question.subject).name}</span><span>${question.type === 'ox' ? '○×' : '5肢択一'}</span><span>オリジナル</span>${question.trend ? '<span>過去問傾向補強</span>' : ''}`;
     $('questionText').textContent = question.text;
     const options = $('questionOptions');
     options.replaceChildren();
@@ -329,6 +338,24 @@
       link.textContent = `${lesson.sources[0].label}をe-Govで確認 ↗`;
       box.append(link);
     }
+    appendTrendNote(box, question);
+  }
+
+  function appendTrendNote(parent, item) {
+    if (!item.trend) return;
+    const note = document.createElement('aside');
+    note.className = 'trend-note';
+    const title = document.createElement('strong');
+    title.textContent = '過去問傾向との対応';
+    const detail = document.createElement('p');
+    detail.textContent = `${item.trend.years.join('・')}年度の公式問題で扱われた「${item.trend.scope}」を補強する独自問題です。問題文は転載していません。`;
+    const link = document.createElement('a');
+    link.href = item.trend.sourceUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = '公式の過去の試験問題と正解を開く ↗';
+    note.append(title, detail, link);
+    parent.append(note);
   }
 
   function moveQuestion(direction) {
@@ -352,7 +379,7 @@
     root.replaceChildren();
     const meta = document.createElement('div');
     meta.className = 'question-meta';
-    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${multiIndex + 1} / ${DATA.multi.length}</span><span>オリジナル</span>`;
+    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${multiIndex + 1} / ${DATA.multi.length}</span><span>オリジナル</span>${item.trend ? '<span>過去問傾向補強</span>' : ''}`;
     const title = document.createElement('h3');
     title.textContent = item.title;
     const prompt = document.createElement('p');
@@ -411,6 +438,7 @@
     const box = document.createElement('div');
     box.className = `feedback ${correct ? 'correct' : 'wrong'}`;
     box.innerHTML = `<h4>${correct ? '正解です' : '解答を確認しましょう'}</h4><p><strong>正答：</strong>${item.answer.join(' ／ ')}</p><p>${item.explanation}</p>`;
+    appendTrendNote(box, item);
     root.append(box);
   }
 
@@ -426,7 +454,7 @@
     root.replaceChildren();
     const meta = document.createElement('div');
     meta.className = 'question-meta';
-    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${writtenIndex + 1} / ${DATA.written.length}</span><span>オリジナル</span>`;
+    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${writtenIndex + 1} / ${DATA.written.length}</span><span>オリジナル</span>${item.trend ? '<span>過去問傾向補強</span>' : ''}`;
     const title = document.createElement('h3');
     title.textContent = item.title;
     const prompt = document.createElement('p');
@@ -474,6 +502,7 @@
     box.className = 'model-answer';
     const list = item.points.map(point => `<li>${point}</li>`).join('');
     box.innerHTML = `<strong>解答例</strong><p>${item.model}</p><strong>自己採点ポイント</strong><ul>${list}</ul><p>${item.explanation}</p>`;
+    appendTrendNote(box, item);
     root.append(box);
   }
 

@@ -1,0 +1,26 @@
+{
+  "source": "一般財団法人行政書士試験研究センター『過去の試験問題と正解』",
+  "source_url": "https://gyosei-shiken.or.jp/doc/exam/index.html",
+  "years": [2021, 2022, 2023, 2024, 2025],
+  "questions_reviewed": 300,
+  "copyright_policy": "問題本文は収録せず、出題区分・テーマの集計だけを教材設計に利用する。",
+  "distribution": [
+    { "area": "基礎法学", "questions": 10, "typical_numbers": "各年度2問" },
+    { "area": "憲法", "questions": 25, "typical_numbers": "各年度5問" },
+    { "area": "行政法", "questions": 95, "typical_numbers": "各年度19問" },
+    { "area": "民法", "questions": 45, "typical_numbers": "各年度9問" },
+    { "area": "商法・会社法", "questions": 25, "typical_numbers": "各年度5問" },
+    { "area": "多肢選択式", "questions": 15, "typical_numbers": "各年度3問" },
+    { "area": "40字記述式", "questions": 15, "typical_numbers": "各年度3問" },
+    { "area": "基礎知識", "questions": 70, "typical_numbers": "各年度14問" }
+  ],
+  "administrative_law_breakdown": [
+    { "area": "行政法総論・行政作用", "questions": 15 },
+    { "area": "行政手続法", "questions": 15 },
+    { "area": "行政不服審査法", "questions": 15 },
+    { "area": "行政事件訴訟法", "questions": 15 },
+    { "area": "国家賠償法", "questions": 10 },
+    { "area": "地方自治法", "questions": 15 },
+    { "area": "行政法総合・関連法", "questions": 10 }
+  ]
+}

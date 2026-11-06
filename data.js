@@ -231,5 +231,5 @@ window.GYOPASS_DATA = (() => {
     { id:'w05', subject:'administrative', lessonId:'admin-state-liability', title:'公権力の行使と国家賠償', prompt:'公務員の行為について国または公共団体が国家賠償法1条の責任を負うための主要な要件を、40字程度で記述してください。', model:'公務員が職務を行うについて、故意又は過失により違法に他人へ損害を加えたこと。', points:['公務員','職務を行うについて','故意又は過失','違法','損害'], explanation:'主体・職務関連性・主観的要件・違法性・損害を短くつなぎます。' }
   ];
 
-  return { version: '0.2.0', basisDate: '2026-04-01', currentLawChecked: '2026-11-06', laws, subjects, lessons, ox, five, multi, written };
+  return { version: '0.3.0', basisDate: '2026-04-01', currentLawChecked: '2026-11-06', laws, subjects, lessons, ox, five, multi, written };
 })();
