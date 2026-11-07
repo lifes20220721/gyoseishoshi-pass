@@ -2,6 +2,8 @@
 
 行政書士試験向けの、スマートフォン対応・静的学習サイトです。教材と問題は独自作成で、一般財団法人行政書士試験研究センターの過去問本文は収録していません。
 
+公開URL：<https://gyoseishoshipass.com/>
+
 ## 収録機能
 
 - 公式試験範囲に沿った6科目・20講義（行政法7講義）の科目別テキスト
@@ -36,7 +38,7 @@ python3 -m http.server 8000
 
 ## 収益化設定
 
-広告審査通過後に `monetization-config.js` へ本人のAdSenseクライアントIDと広告枠IDを設定し、`enabled` を `true` にします。未設定時は広告枠を表示せず、広告配信事業者への通信も行いません。独自ドメインを設定した場合は、canonical、サイトマップ、各ポリシーページのURLも新ドメインへ更新します。
+広告審査通過後に `monetization-config.js` へ本人のAdSenseクライアントIDと広告枠IDを設定し、`enabled` を `true` にします。未設定時は広告枠を表示せず、広告配信事業者への通信も行いません。canonical、サイトマップ、各ポリシーページは独自ドメイン `gyoseishoshipass.com` に設定済みです。
 
 独自ドメイン、AdSense、`ads.txt` の設定順序は `MONETIZATION.md` を参照してください。
 

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://lifes20220721.github.io/gyoseishoshi-pass/sitemap.xml
+Sitemap: https://gyoseishoshipass.com/sitemap.xml

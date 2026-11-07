@@ -4,10 +4,10 @@
 
 ## 1. 独自ドメイン
 
-1. 使用するドメインを取得する（例：`gyoseishoshipass.com`）。
-2. GitHub Pagesの「Custom domain」に取得したドメインを登録する。
-3. ドメイン事業者のDNSへGitHub Pages指定のレコードを設定する。
-4. HTTPSが有効になった後、`index.html`、各ポリシーページ、`robots.txt`、`sitemap.xml`のGitHub Pages URLを独自ドメインへ変更する。
+1. `gyoseishoshipass.com` を取得する。（完了）
+2. GitHub Pagesの「Custom domain」に取得したドメインを登録する。（設定済み）
+3. ドメイン事業者のDNSへGitHub Pages指定のレコードを設定する。（設定済み）
+4. `index.html`、各ポリシーページ、`robots.txt`、`sitemap.xml`を独自ドメインへ変更する。（完了）
 
 ドメインを取得する前に `CNAME` を追加しないでください。第三者所有ドメインを設定すると公開に支障が出ます。
 
