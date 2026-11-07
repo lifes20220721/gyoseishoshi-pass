@@ -144,7 +144,7 @@ for (const question of megaBank.written) assert(question.model.length <= 80, `${
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const adsenseAccountTag = '<meta name="google-adsense-account" content="ca-pub-8976067134459371">';
-for (const file of ['CNAME', 'styles.css', 'legal.css', 'data.js', 'reinforcement-v0.3.0.js', 'administrative-focus-v0.4.0.js', 'administrative-trend-v0.5.0.js', 'mega-bank-v1.0.0.js', 'official-topic-audit-v0.3.0.json', 'app.js', 'monetization-config.js', 'monetization.js', 'privacy.html', 'terms.html', 'contact.html', 'sources.html', 'robots.txt', 'sitemap.xml', 'MONETIZATION.md', 'ads.txt.example', 'manifest.webmanifest', 'service-worker.js', 'icons/app-icon.svg']) {
+for (const file of ['CNAME', 'styles.css', 'legal.css', 'data.js', 'reinforcement-v0.3.0.js', 'administrative-focus-v0.4.0.js', 'administrative-trend-v0.5.0.js', 'mega-bank-v1.0.0.js', 'official-topic-audit-v0.3.0.json', 'app.js', 'monetization-config.js', 'monetization.js', 'privacy.html', 'terms.html', 'contact.html', 'sources.html', 'robots.txt', 'sitemap.xml', 'MONETIZATION.md', 'ads.txt', 'ads.txt.example', 'manifest.webmanifest', 'service-worker.js', 'icons/app-icon.svg']) {
   assert(fs.existsSync(path.join(root, file)), `${file} がありません`);
 }
 assert(html.includes('https://gyosei-shiken.or.jp/doc/exam/index.html'));
@@ -181,7 +181,11 @@ const monetizationConfig = fs.readFileSync(path.join(root, 'monetization-config.
 const monetization = fs.readFileSync(path.join(root, 'monetization.js'), 'utf8');
 assert(monetizationConfig.includes('enabled: false'), '広告ID未設定時は無効である必要があります');
 assert(monetizationConfig.includes("adsenseClient: ''"), '架空の広告IDを設定してはいけません');
-assert(!fs.existsSync(path.join(root, 'ads.txt')), '本人の広告IDがない状態でads.txtを公開してはいけません');
+assert.equal(
+  fs.readFileSync(path.join(root, 'ads.txt'), 'utf8').trim(),
+  'google.com, pub-8976067134459371, DIRECT, f08c47fec0942fa0',
+  'ads.txtのパブリッシャー情報が正しくありません'
+);
 assert(monetization.includes('pagead2.googlesyndication.com'));
 assert(monetization.includes('clientIsValid'));
 assert(monetization.includes('gyoseishoshi-pass:advertising-consent:v1'));
