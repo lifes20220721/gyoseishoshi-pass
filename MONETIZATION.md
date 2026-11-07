@@ -13,8 +13,8 @@
 
 ## 2. Google AdSense
 
-1. 本人のGoogleアカウントでAdSenseへ申請する。
-2. 審査用コードまたはサイト所有確認を、AdSenseの案内に従って設定する。
+1. 本人のGoogleアカウントでAdSenseへ申請する。（既存アカウントへサイト追加済み）
+2. 審査用のサイト所有確認メタタグを設定する。（設定済み）
 3. 承認後、`monetization-config.js`へ本人の `ca-pub-` クライアントIDと広告枠IDを入力する。
 4. `enabled` を `true` に変更する。
 5. `ads.txt.example` のIDを本人の `pub-` IDへ置き換え、ファイル名を `ads.txt` にして公開する。

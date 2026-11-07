@@ -143,6 +143,7 @@ for (const question of megaBank.multi) {
 for (const question of megaBank.written) assert(question.model.length <= 80, `${question.id}: 解答例が80字を超えています`);
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const adsenseAccountTag = '<meta name="google-adsense-account" content="ca-pub-8976067134459371">';
 for (const file of ['CNAME', 'styles.css', 'legal.css', 'data.js', 'reinforcement-v0.3.0.js', 'administrative-focus-v0.4.0.js', 'administrative-trend-v0.5.0.js', 'mega-bank-v1.0.0.js', 'official-topic-audit-v0.3.0.json', 'app.js', 'monetization-config.js', 'monetization.js', 'privacy.html', 'terms.html', 'contact.html', 'sources.html', 'robots.txt', 'sitemap.xml', 'MONETIZATION.md', 'ads.txt.example', 'manifest.webmanifest', 'service-worker.js', 'icons/app-icon.svg']) {
   assert(fs.existsSync(path.join(root, file)), `${file} がありません`);
 }
@@ -156,8 +157,12 @@ assert(html.includes('公式問題300問を分野別に分析'));
 assert(html.includes('全1000問・行政法396問の独自問題バンク'));
 assert.equal(fs.readFileSync(path.join(root, 'CNAME'), 'utf8').trim(), 'gyoseishoshipass.com');
 assert(html.includes('<link rel="canonical" href="https://gyoseishoshipass.com/">'));
+assert(html.includes(adsenseAccountTag));
 assert(html.includes('application/ld+json'));
-for (const page of ['privacy.html', 'terms.html', 'contact.html', 'sources.html']) assert(html.includes(`href="${page}"`), `${page} へのリンクがありません`);
+for (const page of ['privacy.html', 'terms.html', 'contact.html', 'sources.html']) {
+  assert(html.includes(`href="${page}"`), `${page} へのリンクがありません`);
+  assert(fs.readFileSync(path.join(root, page), 'utf8').includes(adsenseAccountTag), `${page} にAdSense確認タグがありません`);
+}
 assert(html.includes('monetization-config.js'));
 assert(html.includes('monetization.js'));
 assert(fs.readFileSync(path.join(root, 'app.js'), 'utf8').includes("gyoseishoshi-pass:learning:v1"));
