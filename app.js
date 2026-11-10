@@ -87,6 +87,7 @@
     textRead: [],
     writtenDrafts: {},
     multiAnswers: {},
+    subjectResume: {},
     resume: null
   };
 
@@ -109,7 +110,9 @@
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (!parsed || parsed.schema !== 1 || typeof parsed.answers !== 'object') return structuredClone(DEFAULT_STATE);
-      return { ...structuredClone(DEFAULT_STATE), ...parsed };
+      const loaded = { ...structuredClone(DEFAULT_STATE), ...parsed };
+      if (!loaded.subjectResume || typeof loaded.subjectResume !== 'object' || Array.isArray(loaded.subjectResume)) loaded.subjectResume = {};
+      return loaded;
     } catch (_) {
       return structuredClone(DEFAULT_STATE);
     }
@@ -143,7 +146,7 @@
   }
 
   function routeTitle(name) {
-    return ({ home: '行政書士PASS', texts: '科目別テキスト', lesson: 'テキスト', quiz: '問題演習', multi: '多肢選択式', written: '40字記述式', stats: '科目別成績' })[name];
+    return ({ home: '行政書士PASS', texts: '科目・分野別に学ぶ', lesson: 'テキスト', quiz: '問題演習', multi: '多肢選択式', written: '40字記述式', stats: '科目別成績' })[name];
   }
 
   function answeredEntries() {
@@ -204,20 +207,81 @@
     if (saved.type === 'written') { writtenIndex = saved.data.index || 0; renderWritten(); }
   }
 
+  function getSubjectResume(subjectId) {
+    const saved = state.subjectResume?.[subjectId];
+    if (!saved || !['ox', 'five'].includes(saved.mode)) return null;
+    const questions = questionsFor(saved.mode, subjectId);
+    if (!questions.length) return null;
+    const questionIndex = questions.findIndex(question => question.id === saved.questionId);
+    const fallbackIndex = Math.min(Math.max(Number(saved.index) || 0, 0), questions.length - 1);
+    return { ...saved, index: questionIndex >= 0 ? questionIndex : fallbackIndex, total: questions.length };
+  }
+
+  function resumeSubjectQuiz(subjectId) {
+    const saved = getSubjectResume(subjectId);
+    if (!saved) return startQuiz('ox', { subject: subjectId });
+    startQuiz(saved.mode, { subject: subjectId, index: saved.index });
+  }
+
+  function renderSubjectPractice(subject) {
+    const oxCount = questionsFor('ox', subject.id).length;
+    const fiveCount = questionsFor('five', subject.id).length;
+    const saved = getSubjectResume(subject.id);
+    const section = document.createElement('section');
+    section.className = 'subject-practice';
+
+    const heading = document.createElement('div');
+    heading.className = 'subject-practice-heading';
+    heading.innerHTML = `<div><span class="practice-label">問題演習</span><h3>${subject.name}の問題</h3></div><small>○× ${oxCount}問・5肢 ${fiveCount}問</small>`;
+    section.append(heading);
+
+    if (saved) {
+      const status = document.createElement('p');
+      status.className = 'subject-resume-status';
+      status.innerHTML = `<strong>続きがあります</strong><span>${modeTitle(saved.mode)} ${saved.index + 1} / ${saved.total}問目</span>`;
+      const resume = document.createElement('button');
+      resume.type = 'button';
+      resume.className = 'primary subject-resume-button';
+      resume.dataset.subjectResume = subject.id;
+      resume.textContent = '続きから問題を解く';
+      section.append(status, resume);
+    } else {
+      const status = document.createElement('p');
+      status.className = 'subject-resume-status is-new';
+      status.innerHTML = '<strong>この科目は未開始です</strong><span>一問一答または5肢択一から始められます</span>';
+      section.append(status);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'subject-practice-actions';
+    [['ox', '一問一答を最初から'], ['five', '5肢択一を最初から']].forEach(([mode, label]) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.subjectStart = subject.id;
+      button.dataset.quizMode = mode;
+      button.textContent = label;
+      actions.append(button);
+    });
+    section.append(actions);
+    return section;
+  }
+
   function renderTexts() {
     const root = $('subjectList');
     root.replaceChildren();
     DATA.subjects.forEach(subject => {
       const lessons = DATA.lessons.filter(item => item.subject === subject.id);
+      const practiceCount = questionsFor('ox', subject.id).length + questionsFor('five', subject.id).length;
       const card = document.createElement('article');
       card.className = 'subject-card';
       const summary = document.createElement('button');
       summary.className = 'subject-summary';
       summary.type = 'button';
       summary.setAttribute('aria-expanded', 'false');
-      summary.innerHTML = `<span><strong>${subject.name}</strong><small>${subject.description}</small></span><span>${lessons.length}講義 ＋</span>`;
+      summary.innerHTML = `<span><strong>${subject.name}</strong><small>${subject.description}</small></span><span>${lessons.length}講義・${practiceCount}問 ＋</span>`;
       const list = document.createElement('div');
       list.className = 'lesson-list hidden';
+      list.append(renderSubjectPractice(subject));
       lessons.forEach((lesson, index) => {
         const button = document.createElement('button');
         button.type = 'button';
@@ -230,7 +294,7 @@
       summary.addEventListener('click', () => {
         const open = list.classList.toggle('hidden') === false;
         summary.setAttribute('aria-expanded', String(open));
-        summary.lastElementChild.textContent = `${lessons.length}講義 ${open ? '−' : '＋'}`;
+        summary.lastElementChild.textContent = `${lessons.length}講義・${practiceCount}問 ${open ? '−' : '＋'}`;
       });
       card.append(summary, list);
       root.append(card);
@@ -412,6 +476,14 @@
     renderFeedback(question, saved);
     $('previousQuestion').disabled = session.index === 0;
     $('nextQuestion').textContent = session.index === session.questions.length - 1 ? '結果を確認' : '次の問題 →';
+    if (session.subject !== 'all' && ['ox', 'five'].includes(session.mode)) {
+      state.subjectResume[session.subject] = {
+        mode: session.mode,
+        index: session.index,
+        questionId: question.id,
+        at: new Date().toISOString()
+      };
+    }
     setResume('quiz', { mode: session.mode, index: session.index, subject: session.subject, originLessonId: session.originLessonId });
   }
 
@@ -699,6 +771,10 @@
     if (routeButton) return showRoute(routeButton.dataset.route);
     const lessonButton = event.target.closest('[data-lesson]');
     if (lessonButton) return openLesson(lessonButton.dataset.lesson);
+    const subjectResumeButton = event.target.closest('[data-subject-resume]');
+    if (subjectResumeButton) return resumeSubjectQuiz(subjectResumeButton.dataset.subjectResume);
+    const subjectStartButton = event.target.closest('[data-subject-start]');
+    if (subjectStartButton) return startQuiz(subjectStartButton.dataset.quizMode, { subject: subjectStartButton.dataset.subjectStart });
     const answerButton = event.target.closest('[data-answer]');
     if (answerButton) return answerQuestion(answerButton.dataset.answer);
     const wordButton = event.target.closest('[data-multi-word]');

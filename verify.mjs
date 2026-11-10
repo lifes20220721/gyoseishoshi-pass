@@ -166,6 +166,9 @@ for (const page of ['privacy.html', 'terms.html', 'contact.html', 'sources.html'
 assert(html.includes('monetization-config.js'));
 assert(html.includes('monetization.js'));
 assert(fs.readFileSync(path.join(root, 'app.js'), 'utf8').includes("gyoseishoshi-pass:learning:v1"));
+assert(fs.readFileSync(path.join(root, 'app.js'), 'utf8').includes('subjectResume'));
+assert(html.includes('科目・分野別に学ぶ'));
+assert(html.includes('問題の途中位置は科目ごとに自動保存されます'));
 assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./reinforcement-v0.3.0.js'));
 assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./administrative-focus-v0.4.0.js'));
 assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./administrative-trend-v0.5.0.js'));
@@ -211,5 +214,5 @@ assert(fs.readFileSync(path.join(root, 'MONETIZATION.md'), 'utf8').includes('Goo
 console.log(JSON.stringify({
   passed: true,
   counts: { subjects: data.subjects.length, lessons: data.lessons.length, ox: data.ox.length, five: data.five.length, multi: data.multi.length, written: data.written.length },
-  checks: ['exactly 1000 questions', 'unique IDs', 'subject and lesson references', 'answer ranges', '5 unique options', '8 unique multi-choice words', 'written answer length', 'e-Gov links', '7 administrative lessons', '7 diagrams', '396 administrative questions', '120-concept mega bank', 'S/A priority metadata', '300-question topic audit', 'SEO canonical and sitemap', 'privacy and terms pages', 'operator and source disclosure', 'consent-gated ad loader', 'empty ad ID by default', 'separate storage keys', 'PWA assets']
+  checks: ['exactly 1000 questions', 'unique IDs', 'subject and lesson references', 'answer ranges', '5 unique options', '8 unique multi-choice words', 'written answer length', 'e-Gov links', '7 administrative lessons', '7 diagrams', '396 administrative questions', '120-concept mega bank', 'S/A priority metadata', '300-question topic audit', 'SEO canonical and sitemap', 'privacy and terms pages', 'operator and source disclosure', 'consent-gated ad loader', 'empty ad ID by default', 'subject-specific quiz resume', 'separate storage keys', 'PWA assets']
 }, null, 2));

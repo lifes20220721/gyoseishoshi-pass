@@ -117,6 +117,7 @@ button.large { padding: 14px 18px; }
 .resume-card button { margin-right: 6px; }
 .view-header { min-height: 62px; display: flex; align-items: center; gap: 18px; margin-bottom: 13px; }
 .basis-note { padding: 11px 13px; color: #675225; background: #fff5d9; border-left: 4px solid var(--gold); border-radius: 8px; font-size: 13px; line-height: 1.7; }
+.subject-study-note { margin: 0 0 13px; color: var(--muted); font-size: 13px; line-height: 1.7; }
 .subject-list { display: grid; gap: 12px; }
 .subject-card { background: var(--paper); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
 .subject-summary { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px; border: 0; border-radius: 0; text-align: left; }
@@ -125,6 +126,18 @@ button.large { padding: 14px 18px; }
 .lesson-list { padding: 0 12px 12px; }
 .lesson-link { width: 100%; display: flex; align-items: center; justify-content: space-between; margin-top: 7px; padding: 12px; text-align: left; }
 .lesson-link span { color: var(--muted); font-size: 12px; }
+.subject-practice { margin: 2px 0 12px; padding: 14px; background: #eef7f6; border: 1px solid #c9dfdc; border-radius: 12px; }
+.subject-practice-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
+.subject-practice-heading h3 { margin: 4px 0 0; color: var(--navy); font-size: 17px; }
+.subject-practice-heading small { color: var(--muted); text-align: right; font-size: 11px; }
+.practice-label { color: var(--teal); font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+.subject-resume-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0 9px; padding: 10px 11px; color: white; background: var(--navy); border-radius: 9px; }
+.subject-resume-status.is-new { color: var(--ink); background: white; border: 1px solid var(--line); }
+.subject-resume-status strong, .subject-resume-status span { display: block; }
+.subject-resume-status span { font-size: 12px; text-align: right; }
+.subject-resume-button { width: 100%; }
+.subject-practice-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 8px; }
+.subject-practice-actions button { padding: 9px 7px; font-size: 12px; }
 
 .lesson-article h2 { margin: 4px 0 10px; font-family: "Yu Mincho", serif; font-size: 27px; }
 .lead { color: #395365; font-size: 16px; line-height: 1.9; }
@@ -212,6 +225,8 @@ footer p { margin: 5px; }
   .section-heading { align-items: flex-end; }
   .flow-diagram .diagram-content { flex-direction: column; }
   .flow-diagram .diagram-arrow { align-self: center; transform: rotate(90deg); line-height: 1; }
+  .subject-practice-heading, .subject-resume-status { align-items: flex-start; flex-direction: column; }
+  .subject-practice-heading small, .subject-resume-status span { text-align: left; }
   .quiz-toolbar { align-items: center; }
   select { min-width: 150px; max-width: 57vw; }
   .sticky-actions { display: grid; grid-template-columns: repeat(3, 1fr); }
