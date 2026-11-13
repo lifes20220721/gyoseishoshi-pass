@@ -754,7 +754,41 @@
   }
 
   function installHelp() {
-    alert('iPhone / iPad（Safari）: 共有ボタン →「ホーム画面に追加」\n\nAndroid（Chrome）: メニュー →「アプリをインストール」または「ホーム画面に追加」\n\n表示されない場合は、GitHub PagesなどHTTPSの公開URLで開いてください。');
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const instructions = $('installInstructions');
+    if (ios) {
+      instructions.innerHTML = '<p><strong>iPhone・iPadではSafariで開いてください。</strong></p><ol><li>画面下の共有ボタン「□↑」を押す</li><li>メニューの「ホーム画面に追加」を選ぶ</li><li>右上の「追加」を押す</li></ol><p class="install-note">追加後はホーム画面の「行政書士PASS」から起動できます。</p>';
+    } else {
+      instructions.innerHTML = '<p><strong>AndroidではChromeで開いてください。</strong></p><ol><li>ブラウザ右上のメニューを開く</li><li>「アプリをインストール」または「ホーム画面に追加」を選ぶ</li><li>確認画面で「インストール」を押す</li></ol><p class="install-note">対応ブラウザでは「アプリとして追加」ボタンから直接インストールできます。</p>';
+    }
+    const dialog = $('installDialog');
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else alert(instructions.textContent);
+  }
+
+  async function installApp() {
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      showToast('行政書士PASSはアプリとして起動中です。');
+      return;
+    }
+    if (!deferredInstall) return installHelp();
+    deferredInstall.prompt();
+    const choice = await deferredInstall.userChoice;
+    deferredInstall = null;
+    $('installButton').classList.add('hidden');
+    if (choice.outcome === 'accepted') showToast('アプリを追加しています。');
+  }
+
+  function updateNetworkStatus() {
+    const element = $('networkStatus');
+    if (!element) return;
+    if (navigator.onLine) {
+      element.textContent = '';
+      element.classList.remove('offline');
+    } else {
+      element.textContent = 'オフラインです。保存済みの学習画面を利用できます。';
+      element.classList.add('offline');
+    }
   }
 
   function resetLearning() {
@@ -805,6 +839,7 @@
       'written-prev': () => moveWritten(-1),
       'written-next': () => moveWritten(1),
       'export': exportBackup,
+      'install-app': installApp,
       'install-help': installHelp,
       'reset': resetLearning
     };
@@ -812,19 +847,22 @@
   }
 
   function registerPwa() {
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(error => console.warn('Service worker registration failed:', error)));
+    }
     window.addEventListener('beforeinstallprompt', event => {
       event.preventDefault();
       deferredInstall = event;
       $('installButton').classList.remove('hidden');
     });
-    $('installButton').addEventListener('click', async () => {
-      if (!deferredInstall) return installHelp();
-      deferredInstall.prompt();
-      await deferredInstall.userChoice;
+    window.addEventListener('appinstalled', () => {
       deferredInstall = null;
       $('installButton').classList.add('hidden');
+      showToast('行政書士PASSをホーム画面に追加しました。');
     });
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+    updateNetworkStatus();
   }
 
   document.addEventListener('click', onClick);

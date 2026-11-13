@@ -203,6 +203,19 @@ progress { width: 100%; height: 8px; margin: 0 0 12px; accent-color: var(--teal)
 footer { padding: 25px 18px 38px; color: var(--muted); text-align: center; font-size: 12px; }
 footer p { margin: 5px; }
 .footer-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; margin: 12px auto; line-height: 1.8; }
+.network-status { grid-column: 1 / -1; margin: 0; min-height: 1.4em; }
+.network-status.offline { color: #8b4e00; font-weight: 800; }
+.install-dialog { width: min(520px, calc(100% - 28px)); padding: 0; color: var(--ink); background: var(--paper); border: 1px solid #b9c9d1; border-radius: 16px; box-shadow: 0 18px 60px rgba(15,48,74,.28); }
+.install-dialog::backdrop { background: rgba(15,48,74,.54); }
+.install-dialog form { padding: 20px; }
+.install-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.install-dialog-heading h2 { margin: 4px 0 0; font-size: 22px; }
+.dialog-close { min-width: 44px; padding: 6px; font-size: 24px; line-height: 1; }
+.install-instructions { margin: 18px 0; line-height: 1.85; }
+.install-instructions ol { padding-left: 24px; }
+.install-instructions li { margin: 8px 0; }
+.install-note { padding: 11px 13px; background: var(--teal-soft); border-radius: 9px; font-size: 13px; }
+.dialog-done { width: 100%; }
 .consent-banner { position: fixed; left: 50%; bottom: 12px; z-index: 50; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 18px; width: min(860px, calc(100% - 24px)); padding: 16px; color: var(--ink); background: white; border: 1px solid #b9c9d1; border-radius: 14px; box-shadow: 0 12px 40px rgba(15,48,74,.25); transform: translateX(-50%); }
 .consent-banner p { margin: 5px 0 0; font-size: 12px; line-height: 1.65; }
 .consent-actions { display: flex; gap: 7px; }

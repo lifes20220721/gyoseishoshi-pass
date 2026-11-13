@@ -144,7 +144,7 @@ for (const question of megaBank.written) assert(question.model.length <= 80, `${
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const adsenseAccountTag = '<meta name="google-adsense-account" content="ca-pub-8976067134459371">';
-for (const file of ['CNAME', 'styles.css', 'legal.css', 'data.js', 'reinforcement-v0.3.0.js', 'administrative-focus-v0.4.0.js', 'administrative-trend-v0.5.0.js', 'mega-bank-v1.0.0.js', 'official-topic-audit-v0.3.0.json', 'app.js', 'monetization-config.js', 'monetization.js', 'privacy.html', 'terms.html', 'contact.html', 'sources.html', 'robots.txt', 'sitemap.xml', 'MONETIZATION.md', 'ads.txt', 'ads.txt.example', 'manifest.webmanifest', 'service-worker.js', 'icons/app-icon.svg']) {
+for (const file of ['CNAME', 'styles.css', 'legal.css', 'data.js', 'reinforcement-v0.3.0.js', 'administrative-focus-v0.4.0.js', 'administrative-trend-v0.5.0.js', 'mega-bank-v1.0.0.js', 'official-topic-audit-v0.3.0.json', 'app.js', 'monetization-config.js', 'monetization.js', 'privacy.html', 'terms.html', 'contact.html', 'sources.html', 'robots.txt', 'sitemap.xml', 'MONETIZATION.md', 'PWA.md', 'ads.txt', 'ads.txt.example', 'manifest.webmanifest', 'service-worker.js', 'icons/app-icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png']) {
   assert(fs.existsSync(path.join(root, file)), `${file} がありません`);
 }
 assert(html.includes('https://gyosei-shiken.or.jp/doc/exam/index.html'));
@@ -169,13 +169,43 @@ assert(fs.readFileSync(path.join(root, 'app.js'), 'utf8').includes("gyoseishoshi
 assert(fs.readFileSync(path.join(root, 'app.js'), 'utf8').includes('subjectResume'));
 assert(html.includes('科目・分野別に学ぶ'));
 assert(html.includes('問題の途中位置は科目ごとに自動保存されます'));
-assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./reinforcement-v0.3.0.js'));
-assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./administrative-focus-v0.4.0.js'));
-assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./administrative-trend-v0.5.0.js'));
-assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes('./mega-bank-v1.0.0.js'));
+assert(html.includes('data-action="install-app"'));
+assert(html.includes('id="installDialog"'));
+assert(html.includes('id="networkStatus"'));
+assert(html.includes('apple-mobile-web-app-capable'));
+assert(html.includes('icons/apple-touch-icon.png'));
+const appScript = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+assert(appScript.includes('beforeinstallprompt'));
+assert(appScript.includes('appinstalled'));
+assert(appScript.includes("window.addEventListener('offline'"));
+assert(appScript.includes("window.addEventListener('online'"));
+const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
+assert(serviceWorker.includes('./reinforcement-v0.3.0.js'));
+assert(serviceWorker.includes('./administrative-focus-v0.4.0.js'));
+assert(serviceWorker.includes('./administrative-trend-v0.5.0.js'));
+assert(serviceWorker.includes('./mega-bank-v1.0.0.js'));
+assert(serviceWorker.includes("request.mode === 'navigate'"));
+assert(serviceWorker.includes("request.headers.has('range')"));
 for (const file of ['./monetization-config.js', './monetization.js', './privacy.html', './terms.html', './contact.html', './sources.html']) {
-  assert(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8').includes(file), `${file} がオフライン対象ではありません`);
+  assert(serviceWorker.includes(file), `${file} がオフライン対象ではありません`);
 }
+for (const file of ['./icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png']) assert(serviceWorker.includes(file), `${file} がオフライン対象ではありません`);
+const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.webmanifest'), 'utf8'));
+assert.equal(manifest.id, './');
+assert.equal(manifest.display, 'standalone');
+assert(manifest.categories.includes('education'));
+assert(manifest.icons.some(icon => icon.src === 'icons/icon-192.png' && icon.sizes === '192x192'));
+assert(manifest.icons.some(icon => icon.src === 'icons/icon-512.png' && icon.sizes === '512x512'));
+assert(manifest.icons.some(icon => icon.src === 'icons/maskable-512.png' && icon.purpose === 'maskable'));
+function pngDimensions(file) {
+  const buffer = fs.readFileSync(path.join(root, file));
+  assert.equal(buffer.subarray(1, 4).toString(), 'PNG', `${file} はPNGではありません`);
+  return [buffer.readUInt32BE(16), buffer.readUInt32BE(20)];
+}
+assert.deepEqual(pngDimensions('icons/icon-192.png'), [192, 192]);
+assert.deepEqual(pngDimensions('icons/icon-512.png'), [512, 512]);
+assert.deepEqual(pngDimensions('icons/maskable-512.png'), [512, 512]);
+assert.deepEqual(pngDimensions('icons/apple-touch-icon.png'), [180, 180]);
 assert(fs.readFileSync(path.join(root, 'app.js'), 'utf8').includes("'start-admin-priority'"));
 assert(audit.copyright_policy.includes('問題本文は収録せず'));
 assert(!html.includes('shihoshoshi-pass'));
@@ -214,5 +244,5 @@ assert(fs.readFileSync(path.join(root, 'MONETIZATION.md'), 'utf8').includes('Goo
 console.log(JSON.stringify({
   passed: true,
   counts: { subjects: data.subjects.length, lessons: data.lessons.length, ox: data.ox.length, five: data.five.length, multi: data.multi.length, written: data.written.length },
-  checks: ['exactly 1000 questions', 'unique IDs', 'subject and lesson references', 'answer ranges', '5 unique options', '8 unique multi-choice words', 'written answer length', 'e-Gov links', '7 administrative lessons', '7 diagrams', '396 administrative questions', '120-concept mega bank', 'S/A priority metadata', '300-question topic audit', 'SEO canonical and sitemap', 'privacy and terms pages', 'operator and source disclosure', 'consent-gated ad loader', 'empty ad ID by default', 'subject-specific quiz resume', 'separate storage keys', 'PWA assets']
+  checks: ['exactly 1000 questions', 'unique IDs', 'subject and lesson references', 'answer ranges', '5 unique options', '8 unique multi-choice words', 'written answer length', 'e-Gov links', '7 administrative lessons', '7 diagrams', '396 administrative questions', '120-concept mega bank', 'S/A priority metadata', '300-question topic audit', 'SEO canonical and sitemap', 'privacy and terms pages', 'operator and source disclosure', 'consent-gated ad loader', 'empty ad ID by default', 'subject-specific quiz resume', 'separate storage keys', 'PWA install flow', 'offline navigation', 'PNG and maskable icons']
 }, null, 2));
