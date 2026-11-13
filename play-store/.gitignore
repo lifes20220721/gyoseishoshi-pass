@@ -1,0 +1,15 @@
+# Local Android build output
+.gradle/
+app/build/
+build/
+*.apk
+*.aab
+
+# Never commit upload signing credentials
+private/
+*.keystore
+*.jks
+keystore.properties
+
+# Local Android SDK path
+local.properties

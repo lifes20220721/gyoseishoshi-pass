@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <rect width="1024" height="500" fill="#173f5f"/>
+  <rect width="1024" height="18" fill="#f0b429"/>
+  <circle cx="904" cy="104" r="126" fill="#1f557d" opacity="0.65"/>
+  <circle cx="930" cy="442" r="176" fill="#0d2b45" opacity="0.58"/>
+  <rect x="70" y="72" width="330" height="356" rx="54" fill="#f3f5f2"/>
+  <circle cx="235" cy="203" r="96" fill="#f0b429"/>
+  <circle cx="235" cy="203" r="73" fill="#ffffff"/>
+  <text x="235" y="247" text-anchor="middle" font-family="Noto Sans CJK JP, sans-serif" font-size="112" font-weight="800" fill="#173f5f">行</text>
+  <rect x="133" y="331" width="204" height="18" rx="9" fill="#173f5f"/>
+  <rect x="164" y="371" width="142" height="14" rx="7" fill="#87a7bd"/>
+  <text x="458" y="204" font-family="Noto Sans CJK JP, sans-serif" font-size="74" font-weight="800" fill="#ffffff">行政書士PASS</text>
+  <text x="463" y="280" font-family="Noto Sans CJK JP, sans-serif" font-size="34" font-weight="600" fill="#f3f5f2">科目・分野別に学べる</text>
+  <text x="463" y="334" font-family="Noto Sans CJK JP, sans-serif" font-size="34" font-weight="600" fill="#f3f5f2">1000問の試験対策アプリ</text>
+  <rect x="463" y="371" width="382" height="6" rx="3" fill="#f0b429"/>
+</svg>
