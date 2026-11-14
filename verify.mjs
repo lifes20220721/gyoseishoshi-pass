@@ -77,6 +77,34 @@ const lessonIds = new Set(data.lessons.map(item => item.id));
 const questionIds = [...data.ox, ...data.five, ...data.multi, ...data.written].map(item => item.id);
 assert.equal(new Set(questionIds).size, questionIds.length, '教材IDは重複できません');
 
+context.CustomEvent = class CustomEvent {
+  constructor(type, init = {}) { this.type = type; this.detail = init.detail; }
+};
+context.navigator = { language: 'ja-JP' };
+context.console = console;
+context.window.dispatchEvent = () => {};
+vm.runInNewContext(fs.readFileSync(path.join(root, 'subscription-config.js'), 'utf8'), context);
+vm.runInNewContext(fs.readFileSync(path.join(root, 'subscription.js'), 'utf8'), context);
+const freeQuestionIds = context.window.GYOPASS_SUBSCRIPTION.getFreeQuestionIds();
+const typedQuestions = [
+  ...data.ox.map(question => ({ ...question, accessType: 'ox' })),
+  ...data.five.map(question => ({ ...question, accessType: 'five' })),
+  ...data.multi.map(question => ({ ...question, accessType: 'multi' })),
+  ...data.written.map(question => ({ ...question, accessType: 'written' }))
+];
+const freeQuestions = typedQuestions.filter(question => freeQuestionIds.has(question.id));
+assert.equal(freeQuestionIds.size, 100, '無料問題は100問である必要があります');
+assert.equal(freeQuestions.length, 100, '無料問題IDは全て実在する必要があります');
+assert.deepEqual(
+  Object.fromEntries(data.subjects.map(subject => [subject.id, freeQuestions.filter(question => question.subject === subject.id).length])),
+  { administrative: 40, constitution: 10, civil: 10, commercial: 9, legal: 9, general: 22 }
+);
+for (const subject of data.subjects) {
+  for (const type of ['ox', 'five', 'multi', 'written']) {
+    assert(freeQuestions.some(question => question.subject === subject.id && question.accessType === type), `${subject.id}/${type}: 無料問題がありません`);
+  }
+}
+
 for (const lesson of data.lessons) {
   assert(subjectIds.has(lesson.subject), `${lesson.id}: 科目が存在しません`);
   assert(lesson.sections.length >= 2, `${lesson.id}: 本文が不足しています`);
@@ -144,7 +172,7 @@ for (const question of megaBank.written) assert(question.model.length <= 80, `${
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const adsenseAccountTag = '<meta name="google-adsense-account" content="ca-pub-8976067134459371">';
-for (const file of ['CNAME', 'styles.css', 'legal.css', 'data.js', 'reinforcement-v0.3.0.js', 'administrative-focus-v0.4.0.js', 'administrative-trend-v0.5.0.js', 'mega-bank-v1.0.0.js', 'official-topic-audit-v0.3.0.json', 'app.js', 'monetization-config.js', 'monetization.js', 'privacy.html', 'terms.html', 'contact.html', 'sources.html', 'robots.txt', 'sitemap.xml', 'MONETIZATION.md', 'PWA.md', 'ads.txt', 'ads.txt.example', 'manifest.webmanifest', 'service-worker.js', 'icons/app-icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png']) {
+for (const file of ['CNAME', 'styles.css', 'legal.css', 'data.js', 'reinforcement-v0.3.0.js', 'administrative-focus-v0.4.0.js', 'administrative-trend-v0.5.0.js', 'mega-bank-v1.0.0.js', 'official-topic-audit-v0.3.0.json', 'subscription-config.js', 'subscription.js', 'SUBSCRIPTIONS.md', 'billing-backend/package.json', 'billing-backend/package-lock.json', 'billing-backend/server.mjs', 'billing-backend/Dockerfile', 'app.js', 'monetization-config.js', 'monetization.js', 'privacy.html', 'terms.html', 'contact.html', 'sources.html', 'robots.txt', 'sitemap.xml', 'MONETIZATION.md', 'PWA.md', 'ads.txt', 'ads.txt.example', 'manifest.webmanifest', 'service-worker.js', 'icons/app-icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png']) {
   assert(fs.existsSync(path.join(root, file)), `${file} がありません`);
 }
 assert(html.includes('https://gyosei-shiken.or.jp/doc/exam/index.html'));
@@ -153,6 +181,11 @@ assert(html.includes('reinforcement-v0.3.0.js'));
 assert(html.includes('administrative-focus-v0.4.0.js'));
 assert(html.includes('administrative-trend-v0.5.0.js'));
 assert(html.includes('mega-bank-v1.0.0.js'));
+assert(html.includes('subscription-config.js'));
+assert(html.includes('subscription.js'));
+assert(html.includes('無料100問・有料全1000問'));
+assert(html.includes('月額プラン'));
+assert(html.includes('年額プラン'));
 assert(html.includes('公式問題300問を分野別に分析'));
 assert(html.includes('全1000問・行政法396問の独自問題バンク'));
 assert.equal(fs.readFileSync(path.join(root, 'CNAME'), 'utf8').trim(), 'gyoseishoshipass.com');
@@ -189,6 +222,9 @@ assert(serviceWorker.includes("request.headers.has('range')"));
 for (const file of ['./monetization-config.js', './monetization.js', './privacy.html', './terms.html', './contact.html', './sources.html']) {
   assert(serviceWorker.includes(file), `${file} がオフライン対象ではありません`);
 }
+for (const file of ['./subscription-config.js', './subscription.js']) {
+  assert(serviceWorker.includes(file), `${file} がオフライン対象ではありません`);
+}
 for (const file of ['./icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png']) assert(serviceWorker.includes(file), `${file} がオフライン対象ではありません`);
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.webmanifest'), 'utf8'));
 assert.equal(manifest.id, './');
@@ -208,7 +244,7 @@ assert.deepEqual(pngDimensions('icons/maskable-512.png'), [512, 512]);
 assert.deepEqual(pngDimensions('icons/apple-touch-icon.png'), [180, 180]);
 assert(fs.readFileSync(path.join(root, 'app.js'), 'utf8').includes("'start-admin-priority'"));
 assert(audit.copyright_policy.includes('問題本文は収録せず'));
-assert(!html.includes('shihoshoshi-pass'));
+assert(html.includes('https://shihoshoshipass.com/'));
 
 const monetizationConfig = fs.readFileSync(path.join(root, 'monetization-config.js'), 'utf8');
 const monetization = fs.readFileSync(path.join(root, 'monetization.js'), 'utf8');
@@ -230,7 +266,9 @@ const contact = fs.readFileSync(path.join(root, 'contact.html'), 'utf8');
 const sources = fs.readFileSync(path.join(root, 'sources.html'), 'utf8');
 assert(privacy.includes('広告・アフィリエイト'));
 assert(privacy.includes('localStorage'));
+assert(privacy.includes('定期購入の確認'));
 assert(terms.includes('広告・収益化方針'));
+assert(terms.includes('無料プランと定期購入'));
 assert(terms.includes('免責'));
 assert(contact.includes('life.s.20220721@gmail.com'));
 assert(contact.includes('gyoseishoshi-pass/issues/new'));
@@ -240,6 +278,16 @@ assert(fs.readFileSync(path.join(root, 'robots.txt'), 'utf8').includes('sitemap.
 assert(fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8').includes('<urlset'));
 assert(fs.readFileSync(path.join(root, 'MONETIZATION.md'), 'utf8').includes('独自ドメイン'));
 assert(fs.readFileSync(path.join(root, 'MONETIZATION.md'), 'utf8').includes('Google AdSense'));
+const subscriptionConfig = fs.readFileSync(path.join(root, 'subscription-config.js'), 'utf8');
+const subscriptionClient = fs.readFileSync(path.join(root, 'subscription.js'), 'utf8');
+const billingBackend = fs.readFileSync(path.join(root, 'billing-backend', 'server.mjs'), 'utf8');
+assert(subscriptionConfig.includes('enabled: false'), '購入確認サーバーの公開前は課金を有効化してはいけません');
+assert(subscriptionConfig.includes('gyosei_premium_monthly'));
+assert(subscriptionConfig.includes('gyosei_premium_yearly'));
+assert(subscriptionClient.includes('purchaseToken'));
+assert(subscriptionClient.includes("credentials: 'omit'"));
+assert(billingBackend.includes('purchases/subscriptionsv2/tokens'));
+assert(billingBackend.includes(':acknowledge'));
 
 console.log(JSON.stringify({
   passed: true,

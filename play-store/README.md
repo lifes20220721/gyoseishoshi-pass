@@ -6,7 +6,7 @@
 
 - アプリ名: 行政書士PASS
 - パッケージ名: `com.gyoseishoshipass.app`
-- 初回バージョン: `1.0.0`（versionCode `1`）
+- バージョン: `1.1.0`（versionCode `2`）
 - Target SDK: Android 16 / API 36
 - Minimum SDK: Android 7.0 / API 24
 - 配信URL: `https://gyoseishoshipass.com/`
@@ -21,10 +21,11 @@
 ## Play Consoleでの提出順序
 
 1. Play Consoleでアプリを作成し、アプリ種別を「アプリ」、カテゴリを「教育」に設定する。
-2. 有料販売する場合は、一般公開前に「有料」と価格を設定する。一度無料で提供した同一パッケージは有料へ変更できません。
-3. `app-release-bundle.aab` を内部テストへアップロードし、Play App Signingを有効にする。
-4. Play Consoleの「Playアプリ署名」から「アプリ署名鍵証明書」のSHA-256を取得する。
-5. 次のコマンドでWeb側のDigital Asset Linksへフィンガープリントを追加し、サイトを公開する。
+2. アプリ自体は「無料」のままにし、定期購入 `gyosei_premium_monthly`（月額500円）と `gyosei_premium_yearly`（年額5,000円）を作成する。
+3. 購入確認サーバーを公開し、Web側の `subscription-config.js` に検証URLを設定してから課金を有効化する。
+4. `app-release-bundle.aab` を内部テストへアップロードし、Play App Signingを有効にする。
+5. Play Consoleの「Playアプリ署名」から「アプリ署名鍵証明書」のSHA-256を取得する。
+6. 次のコマンドでWeb側のDigital Asset Linksへフィンガープリントを追加し、サイトを公開する。
 
    `node scripts/add-play-signing-fingerprint.mjs "AA:BB:..."`
 

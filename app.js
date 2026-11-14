@@ -79,6 +79,7 @@
     DATA.megaBankLoaded = true;
   }
   const STORAGE_KEY = 'gyoseishoshi-pass:learning:v1';
+  const ACCESS = window.GYOPASS_SUBSCRIPTION;
   const VIEWS = ['home', 'texts', 'lesson', 'quiz', 'multi', 'written', 'stats'];
   const DEFAULT_STATE = {
     schema: 1,
@@ -105,6 +106,9 @@
   const subjectById = id => DATA.subjects.find(subject => subject.id === id);
   const lessonById = id => DATA.lessons.find(lesson => lesson.id === id);
   const allPractice = () => [...DATA.ox, ...DATA.five];
+  const accessibleQuestions = questions => ACCESS ? ACCESS.filterQuestions(questions) : [...questions];
+  const accessibleMulti = () => accessibleQuestions(DATA.multi);
+  const accessibleWritten = () => accessibleQuestions(DATA.written);
 
   function loadState() {
     try {
@@ -165,6 +169,35 @@
       <div class="stat"><strong>${state.textRead.length}/${DATA.lessons.length}</strong><span>読了テキスト</span></div>`;
     $('wrongMenuCount').textContent = `未復習 ${state.wrong.length}問`;
     renderResume();
+    renderMembership();
+  }
+
+  function renderMembership() {
+    if (!ACCESS) return;
+    const snapshot = ACCESS.getSnapshot();
+    $('membershipTitle').textContent = snapshot.premium ? 'プレミアムプラン' : '無料プラン';
+    $('membershipDescription').textContent = snapshot.premium
+      ? `全${snapshot.totalQuestionCount}問を学習できます。`
+      : `全${snapshot.totalQuestionCount}問のうち${snapshot.freeQuestionCount}問（10%）を学習できます。`;
+    $('membershipBadge').textContent = snapshot.premium ? `全${snapshot.totalQuestionCount}問` : `無料${snapshot.freeQuestionCount}問`;
+    const upgrade = document.querySelector('#membershipCard [data-action="open-premium"]');
+    upgrade.classList.toggle('hidden', snapshot.premium);
+    updateBillingDialog(snapshot);
+  }
+
+  function updateBillingDialog(snapshot = ACCESS?.getSnapshot()) {
+    if (!snapshot) return;
+    const [monthly, yearly] = snapshot.products;
+    if (monthly) $('monthlyPrice').textContent = monthly.displayPrice;
+    if (yearly) $('yearlyPrice').textContent = yearly.displayPrice;
+    const messages = {
+      checking: 'Google Playの購入情報を確認中です。',
+      premium: 'プレミアムを利用中です。',
+      free: '現在は無料プランです。',
+      unavailable: 'この環境ではGoogle Playの購入情報を確認できません。',
+      preparing: 'Google Play定期購入の公開準備中です。準備完了まで購入は発生しません。'
+    };
+    $('billingStatus').textContent = messages[snapshot.status] || messages.preparing;
   }
 
   function renderResume() {
@@ -203,8 +236,19 @@
     if (!saved) return;
     if (saved.type === 'lesson') return openLesson(saved.data.lessonId);
     if (saved.type === 'quiz') return startQuiz(saved.data.mode, { subject: saved.data.subject, index: saved.data.index, originLessonId: saved.data.originLessonId });
-    if (saved.type === 'multi') { multiIndex = saved.data.index || 0; renderMulti(); return; }
-    if (saved.type === 'written') { writtenIndex = saved.data.index || 0; renderWritten(); }
+    if (saved.type === 'multi') {
+      const questions = accessibleMulti();
+      const savedIndex = questions.findIndex(item => item.id === saved.data.questionId);
+      multiIndex = savedIndex >= 0 ? savedIndex : Math.min(saved.data.index || 0, questions.length - 1);
+      renderMulti();
+      return;
+    }
+    if (saved.type === 'written') {
+      const questions = accessibleWritten();
+      const savedIndex = questions.findIndex(item => item.id === saved.data.questionId);
+      writtenIndex = savedIndex >= 0 ? savedIndex : Math.min(saved.data.index || 0, questions.length - 1);
+      renderWritten();
+    }
   }
 
   function getSubjectResume(subjectId) {
@@ -406,14 +450,14 @@
     let questions;
     if (mode === 'five') questions = [...DATA.five];
     else if (mode === 'review') questions = allPractice().filter(item => state.wrong.includes(item.id));
-    else if (mode === 'quick') questions = deterministicShuffle(allPractice()).slice(0, 10);
+    else if (mode === 'quick') questions = deterministicShuffle(accessibleQuestions(allPractice())).slice(0, 10);
     else if (mode === 'lesson') questions = allPractice().filter(item => item.lessonId === originLessonId);
     else questions = [...DATA.ox];
     if (subject !== 'all' && mode !== 'review' && mode !== 'lesson') questions = questions.filter(item => item.subject === subject);
     if (subject === 'administrative' && !['review', 'lesson'].includes(mode)) {
       questions.sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0) || String(a.id).localeCompare(String(b.id)));
     }
-    return questions;
+    return accessibleQuestions(questions);
   }
 
   function deterministicShuffle(items) {
@@ -569,14 +613,17 @@
   }
 
   function renderMulti() {
-    const item = DATA.multi[multiIndex];
+    const questions = accessibleMulti();
+    if (!questions.length) return openPremiumDialog();
+    multiIndex = Math.min(Math.max(multiIndex, 0), questions.length - 1);
+    const item = questions[multiIndex];
     const saved = state.multiAnswers[item.id];
     multiSelection = saved?.selection ? [...saved.selection] : [];
     const root = $('multiContent');
     root.replaceChildren();
     const meta = document.createElement('div');
     meta.className = 'question-meta';
-    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${multiIndex + 1} / ${DATA.multi.length}</span><span>オリジナル</span>${item.priority ? `<span class="priority-badge priority-${item.priorityLevel.toLowerCase()}">${item.priority}</span>` : item.mega ? '<span>1000問バンク</span>' : item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
+    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${multiIndex + 1} / ${questions.length}</span><span>オリジナル</span>${item.priority ? `<span class="priority-badge priority-${item.priorityLevel.toLowerCase()}">${item.priority}</span>` : item.mega ? '<span>1000問バンク</span>' : item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
     const title = document.createElement('h3');
     title.textContent = item.title;
     const prompt = document.createElement('p');
@@ -605,7 +652,7 @@
     root.append(meta, title, prompt, answer, bank, check);
     updateMultiAnswerLine();
     if (saved) appendMultiFeedback(root, item, saved.correct);
-    setResume('multi', { index: multiIndex });
+    setResume('multi', { index: multiIndex, questionId: item.id });
     showRoute('multi');
   }
 
@@ -624,7 +671,7 @@
 
   function checkMulti() {
     if (multiSelection.length !== 4) return showToast('A〜Dに入る4語を順番に選んでください。');
-    const item = DATA.multi[multiIndex];
+    const item = accessibleMulti()[multiIndex];
     const correct = item.answer.every((answer, index) => answer === multiSelection[index]);
     state.multiAnswers[item.id] = { selection: [...multiSelection], correct, at: new Date().toISOString() };
     saveState();
@@ -640,18 +687,22 @@
   }
 
   function moveMulti(direction) {
-    multiIndex = (multiIndex + direction + DATA.multi.length) % DATA.multi.length;
+    const questions = accessibleMulti();
+    multiIndex = (multiIndex + direction + questions.length) % questions.length;
     renderMulti();
   }
 
   function renderWritten() {
-    const item = DATA.written[writtenIndex];
+    const questions = accessibleWritten();
+    if (!questions.length) return openPremiumDialog();
+    writtenIndex = Math.min(Math.max(writtenIndex, 0), questions.length - 1);
+    const item = questions[writtenIndex];
     const draft = state.writtenDrafts[item.id] || { text: '', revealed: false };
     const root = $('writtenContent');
     root.replaceChildren();
     const meta = document.createElement('div');
     meta.className = 'question-meta';
-    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${writtenIndex + 1} / ${DATA.written.length}</span><span>オリジナル</span>${item.priority ? `<span class="priority-badge priority-${item.priorityLevel.toLowerCase()}">${item.priority}</span>` : item.mega ? '<span>1000問バンク</span>' : item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
+    meta.innerHTML = `<span>${subjectById(item.subject).name}</span><span>${writtenIndex + 1} / ${questions.length}</span><span>オリジナル</span>${item.priority ? `<span class="priority-badge priority-${item.priorityLevel.toLowerCase()}">${item.priority}</span>` : item.mega ? '<span>1000問バンク</span>' : item.focus ? '<span>行政法重点</span>' : item.trend ? '<span>過去問傾向補強</span>' : ''}`;
     const title = document.createElement('h3');
     title.textContent = item.title;
     const prompt = document.createElement('p');
@@ -675,19 +726,19 @@
     reveal.disabled = draft.revealed;
     root.append(meta, title, prompt, textarea, counter, reveal);
     if (draft.revealed) appendWrittenModel(root, item);
-    setResume('written', { index: writtenIndex });
+    setResume('written', { index: writtenIndex, questionId: item.id });
     showRoute('written');
   }
 
   function updateWritten(text) {
-    const item = DATA.written[writtenIndex];
+    const item = accessibleWritten()[writtenIndex];
     state.writtenDrafts[item.id] = { ...(state.writtenDrafts[item.id] || {}), text };
     saveState();
     $('writtenCount').textContent = `${[...text].length}字 / 目安40字`;
   }
 
   function revealWritten() {
-    const item = DATA.written[writtenIndex];
+    const item = accessibleWritten()[writtenIndex];
     const draft = state.writtenDrafts[item.id] || { text: '' };
     state.writtenDrafts[item.id] = { ...draft, revealed: true, at: new Date().toISOString() };
     saveState();
@@ -704,8 +755,34 @@
   }
 
   function moveWritten(direction) {
-    writtenIndex = (writtenIndex + direction + DATA.written.length) % DATA.written.length;
+    const questions = accessibleWritten();
+    writtenIndex = (writtenIndex + direction + questions.length) % questions.length;
     renderWritten();
+  }
+
+  function openPremiumDialog() {
+    updateBillingDialog();
+    const dialog = $('premiumDialog');
+    if (!dialog.open) dialog.showModal();
+  }
+
+  async function restorePurchases() {
+    if (!ACCESS) return;
+    const restored = await ACCESS.restorePurchases();
+    showToast(restored ? 'プレミアムを復元しました。' : '有効な購入情報は確認できませんでした。');
+  }
+
+  async function purchaseSubscription(productId) {
+    if (!ACCESS) return;
+    try {
+      await ACCESS.purchase(productId);
+      $('premiumDialog').close();
+      renderHome();
+      showToast('プレミアムが有効になりました。');
+    } catch (error) {
+      if (error.message === 'billing-not-ready') showToast('Google Play定期購入は現在公開準備中です。');
+      else if (error.name !== 'AbortError') showToast('購入を完了できませんでした。');
+    }
   }
 
   function renderStats() {
@@ -801,6 +878,8 @@
   }
 
   function onClick(event) {
+    const purchaseButton = event.target.closest('[data-subscription-purchase]');
+    if (purchaseButton) return purchaseSubscription(purchaseButton.dataset.subscriptionPurchase);
     const routeButton = event.target.closest('[data-route]');
     if (routeButton) return showRoute(routeButton.dataset.route);
     const lessonButton = event.target.closest('[data-lesson]');
@@ -841,6 +920,8 @@
       'export': exportBackup,
       'install-app': installApp,
       'install-help': installHelp,
+      'open-premium': openPremiumDialog,
+      'restore-purchases': restorePurchases,
       'reset': resetLearning
     };
     actions[action]?.();
@@ -872,6 +953,11 @@
     if (event.target.id === 'writtenAnswer') updateWritten(event.target.value);
   });
   registerPwa();
+  window.addEventListener('gyopass:subscription-change', () => {
+    renderMembership();
+    if (route === 'texts') renderTexts();
+  });
   renderHome();
   showRoute('home', { instant: true });
+  ACCESS?.restorePurchases();
 })();
