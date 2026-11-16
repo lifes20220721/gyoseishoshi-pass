@@ -25,7 +25,9 @@ export function createWorker({ fetchFn = (...args) => fetch(...args), now = () =
       if (sa.type !== 'service_account' || sa.client_email !== 'gyosei-play-uploader@shihoshoshi-pass-ci.iam.gserviceaccount.com') throw new Error('INVALID_ACCOUNT');
       const pem = sa.private_key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
       const keyBytes = Uint8Array.from(atob(pem), char => char.charCodeAt(0));
-      const key = await crypto.subtle.importKey('pkcs8', keyBytes, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+      let key;
+      try { key = await crypto.subtle.importKey('pkcs8', keyBytes, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']); }
+      catch { throw new Error('KEY_IMPORT_FAILED'); }
       const iat = Math.floor(now() / 1000);
       const input = `${encodeJson({ alg: 'RS256', typ: 'JWT', kid: sa.private_key_id })}.${encodeJson({ iss: sa.client_email, scope: 'https://www.googleapis.com/auth/androidpublisher', aud: GOOGLE_TOKEN_URL, iat, exp: iat + 3600 })}`;
       const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(input));
@@ -83,9 +85,10 @@ export function createWorker({ fetchFn = (...args) => fetch(...args), now = () =
           if (!acknowledgement.ok) throw new Error('PLAY_ACKNOWLEDGEMENT_FAILED');
         }
         return reply(200, { active: true, acknowledged: true, expiresAt: item.expiryTime });
-      } catch {
+      } catch (error) {
         // Do not log private keys, OAuth responses, or purchase tokens.
-        return reply(503, { error: 'verification-unavailable' });
+        const known = new Set(['INVALID_ACCOUNT', 'KEY_IMPORT_FAILED', 'GOOGLE_AUTH_FAILED', 'INVALID_GOOGLE_TOKEN', 'PLAY_VERIFICATION_FAILED', 'PLAY_ACKNOWLEDGEMENT_FAILED']);
+        return reply(503, { error: 'verification-unavailable', reason: known.has(error.message) ? error.message : 'UNEXPECTED_RUNTIME_ERROR' });
       }
     }
   };

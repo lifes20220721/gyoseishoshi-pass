@@ -1,10 +1,29 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const NAME = 'gyoseishoshi-pass-billing';
 const API = 'https://api.cloudflare.com/client/v4';
+const runFile = promisify(execFile);
+
+// The fallback is limited to public smoke checks; no credentials are sent by curl.
+export async function deploymentFetch(url, options = {}) {
+  try { return await fetch(url, options); }
+  catch (error) {
+    if (!new URL(url).hostname.endsWith('.workers.dev')) throw error;
+    const args = ['--silent', '--show-error', '--max-time', '20', '--write-out', '\n%{http_code}', '--request', options.method || 'GET'];
+    for (const [name, value] of Object.entries(options.headers || {})) args.push('--header', `${name}: ${value}`);
+    if (typeof options.body === 'string') args.push('--data-raw', options.body);
+    args.push(url);
+    const { stdout } = await runFile('curl', args, { maxBuffer: 65536 });
+    const split = stdout.lastIndexOf('\n');
+    const status = Number(stdout.slice(split + 1));
+    return new Response([204, 304].includes(status) ? null : stdout.slice(0, split), { status });
+  }
+}
 
 export async function deployWorker({ token, credentials, source, fetchFn = (...args) => fetch(...args), report = console.log }) {
   if (!token) throw new Error('MISSING_CLOUDFLARE_API_TOKEN');
@@ -66,7 +85,7 @@ async function main() {
   let credentials;
   try { credentials = JSON.parse(process.env.PLAY_SERVICE_ACCOUNT_JSON || ''); }
   catch { throw new Error('INVALID_GOOGLE_CREDENTIAL_JSON'); }
-  const endpoint = await deployWorker({ token: process.env.CLOUDFLARE_API_TOKEN, credentials, source: await fs.readFile(path.join(directory, 'worker.mjs'), 'utf8') });
+  const endpoint = await deployWorker({ token: process.env.CLOUDFLARE_API_TOKEN, credentials, source: await fs.readFile(path.join(directory, 'worker.mjs'), 'utf8'), fetchFn: deploymentFetch });
   if (process.env.GITHUB_STEP_SUMMARY) await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, `Purchase verification server published: ${endpoint}\nBilling has not been enabled in the app.\n`);
 }
 
