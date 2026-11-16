@@ -14,3 +14,5 @@ keystore.properties
 # Local Android SDK path
 local.properties
 local-maven/
+node_modules/
+*-service-account.json

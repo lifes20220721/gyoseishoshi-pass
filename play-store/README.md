@@ -38,6 +38,8 @@
 
 ## 更新ビルド
 
+有料ブラウザを使わない内部テストへの自動登録は [FREE-AUTOMATION.md](FREE-AUTOMATION.md) を参照してください。
+
 1. `twa-manifest.json` の `appVersionCode` を必ず増やし、`appVersion` を更新する。
 2. Android SDK 36とJDK 17を準備する。
 3. 秘密ファイルを `private/` に戻す。

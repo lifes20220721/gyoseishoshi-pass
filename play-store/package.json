@@ -1,0 +1,13 @@
+{
+  "name": "gyoseishoshi-pass-play-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/upload-internal.mjs",
+    "test": "node --test scripts/upload-internal.test.mjs",
+    "upload:internal": "node scripts/upload-internal.mjs --upload-draft"
+  },
+  "dependencies": {
+    "google-auth-library": "^10.5.0"
+  }
+}
