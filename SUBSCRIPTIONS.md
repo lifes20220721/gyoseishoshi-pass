@@ -25,7 +25,7 @@ GitHub Actionsの `Configure Google Play subscriptions` は、登録済みの `P
 
 2026年11月16日、Consoleで保存された月額・年額商品をAPIで取得し、月額500円（P1M）と年額5,000円（P1Y）、基本プランID `monthly` / `yearly` が一致することを確認しました。確認実行: https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/43870093834 。商品の新規作成APIは引き続きHTTP 403のため、初回商品はConsoleから作成済みです。
 
-Cloudflare Workers Free向けの購入確認実装は `billing-backend/worker.mjs` に準備済みですが、Cloudflareへのアカウント接続と公開は未実施です。購入機能はまだ有効にしていません。
+2026年11月16日、Cloudflare接続とWorker公開を実施しました。検証URLは `https://gyoseishoshi-pass-billing.gyosei-pass-85cbe232.workers.dev/v1/subscriptions/verify` です。外部HTTPS疎通、CORS、未許可Originの拒否、Googleへの無効購入照会と拒否を確認しました。アプリ側の購入機能はまだ有効にしていません。有効な購入・承認・復元・解約の実機テストが残っています。
 
 ## 課金を有効にする条件
 

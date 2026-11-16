@@ -3,7 +3,7 @@
 window.GYOPASS_SUBSCRIPTION_CONFIG = Object.freeze({
   enabled: false,
   packageName: 'com.gyoseishoshipass.app',
-  verificationEndpoint: '',
+  verificationEndpoint: 'https://gyoseishoshi-pass-billing.gyosei-pass-85cbe232.workers.dev/v1/subscriptions/verify',
   freeQuestionCount: 100,
   totalQuestionCount: 1000,
   products: Object.freeze([

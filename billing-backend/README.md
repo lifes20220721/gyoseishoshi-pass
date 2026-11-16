@@ -10,7 +10,7 @@ Google Play Developer APIで行政書士PASSの定期購入を検証し、未承
 4. `/health` と `/v1/subscriptions/verify` のCORS、無効購入の拒否を確認し、Play内部テストの実購入で確認・承認・復元・解約をテストします。
 5. 確認後にWeb側の検証URLを接続し、課金機能と商品を有効にします。
 
-Cloudflareの公開に必要なアカウント認証は現在未接続です。無料枠の制限は https://developers.cloudflare.com/workers/platform/pricing/ を参照してください。
+Cloudflare接続と公開は実施済みです。公開URL: `https://gyoseishoshi-pass-billing.gyosei-pass-85cbe232.workers.dev`。無料枠の制限は https://developers.cloudflare.com/workers/platform/pricing/ を参照してください。
 
 ## GitHub経由の自動公開
 
