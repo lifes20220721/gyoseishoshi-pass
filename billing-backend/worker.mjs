@@ -21,19 +21,25 @@ export function createWorker({ fetchFn = (...args) => fetch(...args), now = () =
     if (cachedToken && cachedToken.until > now()) return cachedToken.token;
     if (tokenPromise) return tokenPromise;
     tokenPromise = (async () => {
-      const sa = JSON.parse(env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON || '');
-      if (sa.type !== 'service_account' || sa.client_email !== 'gyosei-play-uploader@shihoshoshi-pass-ci.iam.gserviceaccount.com') throw new Error('INVALID_ACCOUNT');
+      let sa;
+      try { sa = JSON.parse(env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON || ''); } catch { throw new Error('INVALID_ACCOUNT_JSON'); }
+      if (sa.type !== 'service_account' || sa.client_email !== 'gyosei-play-uploader@shihoshoshi-pass-ci.iam.gserviceaccount.com' || typeof sa.private_key !== 'string') throw new Error('INVALID_ACCOUNT');
       const pem = sa.private_key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
-      const keyBytes = Uint8Array.from(atob(pem), char => char.charCodeAt(0));
+      let keyBytes;
+      try { keyBytes = Uint8Array.from(atob(pem), char => char.charCodeAt(0)); } catch { throw new Error('KEY_DECODE_FAILED'); }
       let key;
       try { key = await crypto.subtle.importKey('pkcs8', keyBytes, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']); }
       catch { throw new Error('KEY_IMPORT_FAILED'); }
       const iat = Math.floor(now() / 1000);
       const input = `${encodeJson({ alg: 'RS256', typ: 'JWT', kid: sa.private_key_id })}.${encodeJson({ iss: sa.client_email, scope: 'https://www.googleapis.com/auth/androidpublisher', aud: GOOGLE_TOKEN_URL, iat, exp: iat + 3600 })}`;
-      const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(input));
-      const response = await fetchFn(GOOGLE_TOKEN_URL, { method: 'POST', redirect: 'error', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${input}.${base64url(signature)}` }) });
+      let signature;
+      try { signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(input)); } catch { throw new Error('JWT_SIGN_FAILED'); }
+      let response;
+      try { response = await fetchFn(GOOGLE_TOKEN_URL, { method: 'POST', redirect: 'error', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${input}.${base64url(signature)}` }) }); }
+      catch { throw new Error('GOOGLE_AUTH_NETWORK_FAILED'); }
       if (!response.ok) throw new Error('GOOGLE_AUTH_FAILED');
-      const token = await response.json();
+      let token;
+      try { token = await response.json(); } catch { throw new Error('GOOGLE_AUTH_JSON_FAILED'); }
       if (typeof token.access_token !== 'string' || !(Number(token.expires_in) > 60)) throw new Error('INVALID_GOOGLE_TOKEN');
       cachedToken = { token: token.access_token, until: now() + Math.min(Number(token.expires_in) - 60, 3300) * 1000 };
       return cachedToken.token;
@@ -71,8 +77,10 @@ export function createWorker({ fetchFn = (...args) => fetch(...args), now = () =
       if (!body || body.packageName !== PACKAGE || !PRODUCTS.has(body.productId)) return reply(400, { error: 'invalid-product' });
       if (typeof body.purchaseToken !== 'string' || body.purchaseToken.length < 20 || body.purchaseToken.length > 4096) return reply(400, { error: 'invalid-token' });
 
+      let stage = 'google-auth';
       try {
         const token = await accessToken(env);
+        stage = 'google-purchase';
         const auth = { authorization: `Bearer ${token}` };
         const response = await fetchFn(`${ROOT}/purchases/subscriptionsv2/tokens/${encodeURIComponent(body.purchaseToken)}`, { headers: auth, redirect: 'error' });
         if ([404, 410].includes(response.status)) return reply(200, { active: false, acknowledged: false });
@@ -87,8 +95,8 @@ export function createWorker({ fetchFn = (...args) => fetch(...args), now = () =
         return reply(200, { active: true, acknowledged: true, expiresAt: item.expiryTime });
       } catch (error) {
         // Do not log private keys, OAuth responses, or purchase tokens.
-        const known = new Set(['INVALID_ACCOUNT', 'KEY_IMPORT_FAILED', 'GOOGLE_AUTH_FAILED', 'INVALID_GOOGLE_TOKEN', 'PLAY_VERIFICATION_FAILED', 'PLAY_ACKNOWLEDGEMENT_FAILED']);
-        return reply(503, { error: 'verification-unavailable', reason: known.has(error.message) ? error.message : 'UNEXPECTED_RUNTIME_ERROR' });
+        const known = new Set(['INVALID_ACCOUNT', 'INVALID_ACCOUNT_JSON', 'KEY_IMPORT_FAILED', 'KEY_DECODE_FAILED', 'JWT_SIGN_FAILED', 'GOOGLE_AUTH_FAILED', 'GOOGLE_AUTH_NETWORK_FAILED', 'GOOGLE_AUTH_JSON_FAILED', 'INVALID_GOOGLE_TOKEN', 'PLAY_VERIFICATION_FAILED', 'PLAY_ACKNOWLEDGEMENT_FAILED']);
+        return reply(503, { error: 'verification-unavailable', reason: known.has(error.message) ? error.message : 'UNEXPECTED_RUNTIME_ERROR', stage, kind: ['Error', 'TypeError', 'SyntaxError', 'RangeError', 'OperationError'].includes(error.name) ? error.name : 'Error' });
       }
     }
   };
