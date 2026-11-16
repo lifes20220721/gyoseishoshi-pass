@@ -12,6 +12,14 @@ Google Play Developer APIで行政書士PASSの定期購入を検証し、未承
 
 Cloudflareの公開に必要なアカウント認証は現在未接続です。無料枠の制限は https://developers.cloudflare.com/workers/platform/pricing/ を参照してください。
 
+## GitHub経由の自動公開
+
+CloudflareのカスタムAPIトークンに、対象の1アカウントだけの「Workersスクリプト: 編集」と「アカウント設定: 参照」を付け、GitHub Repository secret `CLOUDFLARE_API_TOKEN` に保存します。Googleの鍵は既存の `PLAY_SERVICE_ACCOUNT_JSON` を利用します。
+
+`deploy-worker.mjs` は対象アカウントが1件であることを確かめ、必要ならWorkers用サブドメインを作成します。Workerと暗号化SecretをHTTPSで公開し、ヘルスチェックと不許可Originの拒否をテストします。課金プランの変更APIは呼びません。利用アカウントはWorkers Freeであることを事前にダッシュボードで確認してください。
+
+自動公開後も、アプリの課金機能と定期購入商品の有効化は別段階です。
+
 Workerのテストは `node worker.test.mjs` で実行します。秘密鍵・OAuthトークン・購入トークンはログに出しません。
 
 ## Node.js / Cloud Runを使用する場合
