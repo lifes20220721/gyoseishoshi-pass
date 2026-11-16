@@ -17,6 +17,14 @@
 
 アプリ自体の価格は「無料」のままにします。
 
+## 自動設定と必要な権限
+
+GitHub Actionsの `Configure Google Play subscriptions` は、登録済みの `PLAY_SERVICE_ACCOUNT_JSON` を使い、上記2商品の日本向け基本プランを下書き作成して価格・期間を再取得確認します。既存商品の価格が異なる場合は上書きせず停止します。
+
+サービスアカウント `gyosei-play-uploader@shihoshoshi-pass-ci.iam.gserviceaccount.com` には、行政書士PASSに限定して「ストアでの表示の管理」権限が必要です。内部テストへのリリース権限だけでは商品APIは利用できません。
+
+2026年11月16日の実行では商品APIがHTTP 403を返したため、商品は作成していません。権限を追加してからワークフローを再実行します。
+
 ## 課金を有効にする条件
 
 1. 署名済みAABを内部テスト以上へアップロードする。
