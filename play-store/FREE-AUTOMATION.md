@@ -28,3 +28,10 @@ GOOGLE_APPLICATION_CREDENTIALS=./private/play-service-account.json npm run uploa
 更新時のAAB作成は、既存の `scripts/build-release.mjs` を使います。アップロードには未使用のversionCodeが必要です。購入確認サーバーは別途必要で、無料枠のあるサービスも将来の費用ゼロを保証しません。課金サーバーの自動デプロイは含めていません。
 
 公式手順: https://developers.google.com/android-publisher/getting_started
+
+## GitHubからの下書き登録
+
+`PLAY_SERVICE_ACCOUNT_JSON` をGitHub ActionsのRepository secretに登録すると、接続テストを実行できます。
+署名済みAABは `scripts/sealed-bundle.mjs` でGoogleサービスアカウントの公開証明書を使って暗号化し、専用ブランチに保存します。GitHubの実行中にのみSecretの秘密鍵で復号し、AABのSHA-256と署名を確認してから既存のアップロード処理へ渡します。
+
+暗号化はAES-256-GCM、コンテンツ鍵の保護はRSA-OAEP-SHA256です。リポジトリへ入れるのは暗号文と公開メタデータだけで、署名用キーストア、パスワード、Google秘密鍵はコミットしません。Googleの鍵を交換した場合は新しい公開証明書でAABを再暗号化します。
