@@ -7,6 +7,8 @@ export const products = Object.freeze([
   { id: 'gyosei_premium_yearly', planId: 'yearly', period: 'P1Y', yen: '5000', title: '行政書士PASS プレミアム年額' }
 ]);
 const root = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${packageName}`;
+// JP is priced explicitly; no exchange-rate conversion or global pricing access is needed.
+const regionsVersion = '2022/02';
 
 export function matchesProduct(subscription, product) {
   const plan = subscription.basePlans?.find(item => item.basePlanId === product.planId);
@@ -27,15 +29,9 @@ export async function configureSubscriptions(request, report = console.log) {
       report(`${product.id}: already configured at JPY ${product.yen} / ${product.period}`);
       continue;
     }
-    const converted = await request({
-      method: 'POST', url: `${root}/pricing:convertRegionPrices`,
-      data: { price: { currencyCode: 'JPY', units: product.yen, nanos: 0 } }
-    });
-    const version = converted.data.regionVersion?.version;
-    if (!version) throw new Error('NO_REGIONS_VERSION');
     const response = await request({
       method: 'POST',
-      url: `${root}/subscriptions?productId=${encodeURIComponent(product.id)}&regionsVersion.version=${encodeURIComponent(version)}`,
+      url: `${root}/subscriptions?productId=${encodeURIComponent(product.id)}&regionsVersion.version=${encodeURIComponent(regionsVersion)}`,
       data: {
         packageName, productId: product.id,
         listings: [{ languageCode: 'ja-JP', title: product.title,
@@ -70,7 +66,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
     const status = error.response?.status;
     const message = status ? 'GOOGLE_API_REQUEST_FAILED' : error.message;
     console.error('Subscription setup stopped:', message, status || '');
-    if (status === 403) console.error('Play Console app permission required: Manage store presence (subscriptions).');
+    if (status) {
+      const detail = error.response?.data?.error;
+      console.error('Google API detail:', String(detail?.message || '').slice(0, 500));
+      console.error('Operation:', error.config?.method || '', String(error.config?.url || '').split('?')[0]);
+    }
     process.exitCode = 1;
   });
 }

@@ -7,14 +7,13 @@ function fakeApi({ forbidden = false } = {}) {
   const request = async call => {
     calls.push(call);
     if (forbidden) throw Object.assign(new Error('forbidden'), { response: { status: 403 } });
-    if (call.url.includes('pricing:convertRegionPrices')) return { data: { regionVersion: { version: 'test-version' } } };
     if (call.method === 'GET') {
       const id = call.url.split('/').at(-1);
       if (!stored.has(id)) throw Object.assign(new Error('not found'), { response: { status: 404 } });
       return { data: stored.get(id) };
     }
     assert.equal(call.method, 'POST');
-    assert(call.url.includes('regionsVersion.version=test-version'));
+    assert(call.url.includes('regionsVersion.version=2022%2F02'));
     stored.set(call.data.productId, call.data);
     return { data: call.data };
   };
@@ -31,6 +30,7 @@ test('creates exactly the approved prices, without activating or charging', asyn
     assert.equal(value.basePlans[0].autoRenewingBasePlanType.billingPeriodDuration, product.period);
   }
   assert(!api.calls.some(call => call.url.includes(':activate')));
+  assert(!api.calls.some(call => call.url.includes('convertRegionPrices')));
   const count = api.calls.filter(call => call.method === 'POST').length;
   await configureSubscriptions(api.request, () => {});
   assert.equal(api.calls.filter(call => call.method === 'POST').length, count);
