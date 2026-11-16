@@ -1,0 +1,81 @@
+name: Check Google Play access
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/check-play-access.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gyosei-play-access
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: github.repository == 'lifes20220721/gyoseishoshi-pass' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Google authentication client
+        run: npm install --no-audit --no-fund --ignore-scripts google-auth-library@10.5.0
+      - name: Verify credentials and app access
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { GoogleAuth } from 'google-auth-library';
+          const summary = (text) => fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, text + '\n');
+          const root = 'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.gyoseishoshipass.app';
+          let client;
+          let editUrl;
+          let cleanupFailed = false;
+          let failed = false;
+          try {
+            if (!process.env.PLAY_SERVICE_ACCOUNT_JSON) throw new Error('MISSING_SECRET');
+            let credentials;
+            try { credentials = JSON.parse(process.env.PLAY_SERVICE_ACCOUNT_JSON); }
+            catch { throw new Error('INVALID_JSON'); }
+            if (credentials.type !== 'service_account' ||
+                credentials.client_email !== 'gyosei-play-uploader@shihoshoshi-pass-ci.iam.gserviceaccount.com' ||
+                !credentials.private_key) throw new Error('WRONG_SERVICE_ACCOUNT');
+            client = await new GoogleAuth({
+              credentials,
+              scopes: ['https://www.googleapis.com/auth/androidpublisher']
+            }).getClient();
+            await client.getAccessToken();
+            summary('Google authentication: OK');
+            const { data: edit } = await client.request({ method: 'POST', url: root + '/edits', data: {} });
+            if (!edit.id) throw new Error('NO_EDIT_ID');
+            editUrl = root + '/edits/' + encodeURIComponent(edit.id);
+            const { data } = await client.request({ method: 'GET', url: editUrl + '/bundles' });
+            summary('Gyoseishoshi PASS app access: OK');
+            summary('Registered bundles: ' + (data.bundles || []).length);
+          } catch (error) {
+            failed = true;
+            const status = error.response?.status;
+            const code = ['MISSING_SECRET', 'INVALID_JSON', 'WRONG_SERVICE_ACCOUNT', 'NO_EDIT_ID'].includes(error.message)
+              ? error.message : 'GOOGLE_API_ERROR';
+            summary('Check failed: ' + code + (status ? ' (HTTP ' + status + ')' : ''));
+            summary('Check the repository secret, API enablement, app permissions, and first AAB registration in Play Console.');
+            console.error('Access check failed. See the workflow summary. Credentials were not printed.');
+          } finally {
+            if (editUrl) {
+              try { await client.request({ method: 'DELETE', url: editUrl }); }
+              catch {
+                cleanupFailed = true;
+                summary('Temporary edit cleanup failed. No changes were committed.');
+              }
+            }
+            summary('No bundle was uploaded and no release was committed.');
+            if (failed || cleanupFailed) process.exitCode = 1;
+          }
+          NODE
