@@ -8,8 +8,11 @@ const API = 'https://api.cloudflare.com/client/v4';
 
 export async function deployWorker({ token, credentials, source, fetchFn = (...args) => fetch(...args), report = console.log }) {
   if (!token) throw new Error('MISSING_CLOUDFLARE_API_TOKEN');
+  token = token.trim();
+  if (!/^[A-Za-z0-9_-]{20,256}$/.test(token)) throw new Error('INVALID_CLOUDFLARE_TOKEN_FORMAT');
   if (credentials?.type !== 'service_account' || credentials.client_email !== 'gyosei-play-uploader@shihoshoshi-pass-ci.iam.gserviceaccount.com') throw new Error('INVALID_GOOGLE_ACCOUNT');
   async function call(endpoint, options = {}) {
+    report(`Cloudflare operation: ${options.method || 'GET'} ${endpoint}`);
     const response = await fetchFn(`${API}${endpoint}`, {
       ...options, redirect: 'error', headers: { ...options.headers, authorization: `Bearer ${token}` }
     });
@@ -49,6 +52,7 @@ export async function deployWorker({ token, credentials, source, fetchFn = (...a
   await call(`${prefix}/scripts/${NAME}/subdomain`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ enabled: true, previews_enabled: false }) });
 
   const base = `https://${NAME}.${subdomain}.workers.dev`;
+  report(`Checking published Worker: ${base}`);
   const health = await fetchFn(`${base}/health`, { redirect: 'error' });
   if (health.status !== 200 || (await health.json()).ok !== true) throw new Error('HEALTH_CHECK_FAILED');
   const denied = await fetchFn(`${base}/v1/subscriptions/verify`, { method: 'POST', redirect: 'error', headers: { origin: 'https://untrusted.example', 'content-type': 'application/json' }, body: '{}' });
@@ -72,6 +76,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
     // request objects, which could contain Cloudflare or Google credentials.
     const code = /^[A-Z0-9_,]+$/.test(error.message) ? error.message : 'DEPLOYMENT_FAILED';
     console.error('Worker deployment stopped:', code);
+    if (/^[A-Z0-9_]+$/.test(error.cause?.code || '')) console.error('Network error code:', error.cause.code);
     process.exitCode = 1;
   });
 }
