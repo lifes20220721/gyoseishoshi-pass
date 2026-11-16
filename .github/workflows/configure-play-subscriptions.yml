@@ -36,3 +36,30 @@ jobs:
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: node scripts/configure-subscriptions.mjs
+      - name: Diagnose Google API access without changing products
+        if: failure()
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { GoogleAuth } from 'google-auth-library';
+          const credentials = JSON.parse(process.env.PLAY_SERVICE_ACCOUNT_JSON);
+          const client = await new GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/androidpublisher'] }).getClient();
+          const root = 'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.gyoseishoshipass.app';
+          for (const [label, options] of [
+            ['list-products', { method: 'GET', url: root + '/subscriptions?pageSize=1' }],
+            ['read-monthly-product', { method: 'GET', url: root + '/subscriptions/gyosei_premium_monthly' }],
+            ['price-region-lookup', { method: 'POST', url: root + '/pricing:convertRegionPrices', data: { price: { currencyCode: 'JPY', units: '500' } } }],
+            ['billing-token-lookup', { method: 'GET', url: root + '/purchases/subscriptionsv2/tokens/diagnostic-invalid-token' }]
+          ]) {
+            try {
+              const result = await client.request({ ...options, timeout: 20000 });
+              console.log('DIAGNOSTIC', label, result.status);
+            } catch (error) {
+              const detail = error.response?.data?.error;
+              console.log('DIAGNOSTIC', label, error.response?.status || 'NETWORK_ERROR',
+                String(detail?.message || 'No API detail').slice(0, 500),
+                JSON.stringify(detail?.errors?.map(item => ({ reason: item.reason, domain: item.domain })) || []));
+            }
+          }
+          NODE
