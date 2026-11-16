@@ -1,8 +1,20 @@
 # 購入確認バックエンド
 
-Google Play Developer APIで行政書士PASSの定期購入を検証し、未承認の購入を承認するCloud Run向けサーバーです。
+Google Play Developer APIで行政書士PASSの定期購入を検証し、未承認の購入を承認するサーバーです。追加費用を避ける構成としてCloudflare Workers Free向けの `worker.mjs` を用意しています。`server.mjs` はNode.js / Cloud Run向けの別実装です。
 
-## 公開前に必要な設定
+## 無料プランでの公開（推奨）
+
+1. Cloudflareの無料アカウントを用意し、Workers Freeを使用します。有料プランへの変更やCloud Runの作成は行いません。
+2. `wrangler.jsonc` を使って `worker.mjs` を公開します。
+3. Workerの暗号化Secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` に、GitHubで登録済みの行政書士用サービスアカウントJSONを設定します。通常の環境変数やソースファイルには鍵を入れません。
+4. `/health` と `/v1/subscriptions/verify` のCORS、無効購入の拒否を確認し、Play内部テストの実購入で確認・承認・復元・解約をテストします。
+5. 確認後にWeb側の検証URLを接続し、課金機能と商品を有効にします。
+
+Cloudflareの公開に必要なアカウント認証は現在未接続です。無料枠の制限は https://developers.cloudflare.com/workers/platform/pricing/ を参照してください。
+
+Workerのテストは `node worker.test.mjs` で実行します。秘密鍵・OAuthトークン・購入トークンはログに出しません。
+
+## Node.js / Cloud Runを使用する場合
 
 1. Google Play ConsoleとGoogle Cloudプロジェクトを接続する。
 2. Android Publisher APIを有効にする。

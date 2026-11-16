@@ -23,7 +23,9 @@ GitHub Actionsの `Configure Google Play subscriptions` は、登録済みの `P
 
 サービスアカウント `gyosei-play-uploader@shihoshoshi-pass-ci.iam.gserviceaccount.com` には、行政書士PASSに限定して「ストアでの表示の管理」権限が必要です。内部テストへのリリース権限だけでは商品APIは利用できません。
 
-2026年11月16日の権限更新後の診断では、商品一覧の取得と個別商品の不存在確認は成功しました。日本向け価格は換算APIを使わず明示設定する方式に変更済みです。ただし、商品の作成POSTはHTTP 403（The caller does not have permission）のままで、商品は作成していません。Console上の販売者登録、未公開アプリの状態、作成権限の確認が必要です。
+2026年11月16日、Consoleで保存された月額・年額商品をAPIで取得し、月額500円（P1M）と年額5,000円（P1Y）、基本プランID `monthly` / `yearly` が一致することを確認しました。確認実行: https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/43870093834 。商品の新規作成APIは引き続きHTTP 403のため、初回商品はConsoleから作成済みです。
+
+Cloudflare Workers Free向けの購入確認実装は `billing-backend/worker.mjs` に準備済みですが、Cloudflareへのアカウント接続と公開は未実施です。購入機能はまだ有効にしていません。
 
 ## 課金を有効にする条件
 
