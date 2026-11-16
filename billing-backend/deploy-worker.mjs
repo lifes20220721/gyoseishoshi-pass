@@ -77,7 +77,10 @@ export async function deployWorker({ token, credentials, source, fetchFn = (...a
   const denied = await fetchFn(`${base}/v1/subscriptions/verify`, { method: 'POST', redirect: 'error', headers: { origin: 'https://untrusted.example', 'content-type': 'application/json' }, body: '{}' });
   if (denied.status !== 403) throw new Error('ORIGIN_CHECK_FAILED');
   const verificationEndpoint = `${base}/v1/subscriptions/verify`;
-  report(`Worker published; health and origin checks passed: ${base}`);
+  const invalidPurchase = await fetchFn(verificationEndpoint, { method: 'POST', redirect: 'error', headers: { origin: 'https://gyoseishoshipass.com', 'content-type': 'application/json' }, body: JSON.stringify({ packageName: 'com.gyoseishoshipass.app', productId: 'gyosei_premium_monthly', purchaseToken: 'diagnostic-invalid-token-not-a-purchase' }) });
+  const result = await invalidPurchase.json();
+  if (invalidPurchase.status !== 200 || result.active !== false || result.acknowledged !== false) throw new Error('GOOGLE_INVALID_PURCHASE_CHECK_FAILED');
+  report(`Worker published; health, origin and Google invalid-purchase checks passed: ${base}`);
   return verificationEndpoint;
 }
 

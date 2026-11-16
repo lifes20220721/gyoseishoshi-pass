@@ -13,7 +13,7 @@ test('deployment sends credentials only as a secret binding and does not change 
     if (url.endsWith('/accounts?per_page=50')) return ok([{ id: accountId }]);
     if (url.endsWith('/workers/subdomain')) return ok({ subdomain: 'test-account' });
     if (url.endsWith('/health')) return Response.json({ ok: true });
-    if (url.endsWith('/v1/subscriptions/verify')) return new Response(null, { status: 403 });
+    if (url.endsWith('/v1/subscriptions/verify')) return options.headers.origin === 'https://untrusted.example' ? new Response(null, { status: 403 }) : Response.json({ active: false, acknowledged: false });
     if (options.body instanceof FormData) {
       const metadata = JSON.parse(await options.body.get('metadata').text());
       assert.equal(metadata.bindings[0].type, 'secret_text');
