@@ -34,6 +34,7 @@ test('premium access is returned only after Google verification and acknowledgem
   assert.equal(response.headers.get('access-control-allow-origin'), 'https://gyoseishoshipass.com');
   assert.equal(calls.length, 3);
   assert(calls[2].url.endsWith(':acknowledge'));
+  assert(calls.every(call => call.options.redirect === 'manual'), 'Workers supports manual redirects; error mode throws before sending.');
 });
 
 test('acknowledgement failure does not grant access', async () => {

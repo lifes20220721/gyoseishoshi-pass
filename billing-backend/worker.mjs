@@ -35,7 +35,7 @@ export function createWorker({ fetchFn = (...args) => fetch(...args), now = () =
       let signature;
       try { signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(input)); } catch { throw new Error('JWT_SIGN_FAILED'); }
       let response;
-      try { response = await fetchFn(GOOGLE_TOKEN_URL, { method: 'POST', redirect: 'error', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${input}.${base64url(signature)}` }) }); }
+      try { response = await fetchFn(GOOGLE_TOKEN_URL, { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${input}.${base64url(signature)}` }) }); }
       catch { throw new Error('GOOGLE_AUTH_NETWORK_FAILED'); }
       if (!response.ok) throw new Error('GOOGLE_AUTH_FAILED');
       let token;
@@ -82,14 +82,14 @@ export function createWorker({ fetchFn = (...args) => fetch(...args), now = () =
         const token = await accessToken(env);
         stage = 'google-purchase';
         const auth = { authorization: `Bearer ${token}` };
-        const response = await fetchFn(`${ROOT}/purchases/subscriptionsv2/tokens/${encodeURIComponent(body.purchaseToken)}`, { headers: auth, redirect: 'error' });
+        const response = await fetchFn(`${ROOT}/purchases/subscriptionsv2/tokens/${encodeURIComponent(body.purchaseToken)}`, { headers: auth, redirect: 'manual' });
         if ([404, 410].includes(response.status)) return reply(200, { active: false, acknowledged: false });
         if (!response.ok) throw new Error('PLAY_VERIFICATION_FAILED');
         const subscription = await response.json();
         const item = entitlement(subscription, body.productId, now());
         if (!item) return reply(200, { active: false, acknowledged: false });
         if (subscription.acknowledgementState !== 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED') {
-          const acknowledgement = await fetchFn(`${ROOT}/purchases/subscriptions/${encodeURIComponent(body.productId)}/tokens/${encodeURIComponent(body.purchaseToken)}:acknowledge`, { method: 'POST', redirect: 'error', headers: { ...auth, 'content-type': 'application/json' }, body: '{}' });
+          const acknowledgement = await fetchFn(`${ROOT}/purchases/subscriptions/${encodeURIComponent(body.productId)}/tokens/${encodeURIComponent(body.purchaseToken)}:acknowledge`, { method: 'POST', redirect: 'manual', headers: { ...auth, 'content-type': 'application/json' }, body: '{}' });
           if (!acknowledgement.ok) throw new Error('PLAY_ACKNOWLEDGEMENT_FAILED');
         }
         return reply(200, { active: true, acknowledged: true, expiresAt: item.expiryTime });
