@@ -7,7 +7,8 @@
       "namespace": "android_app",
       "package_name": "com.gyoseishoshipass.app",
       "sha256_cert_fingerprints": [
-        "4A:CD:B6:6C:1A:7C:7C:DA:8E:47:65:EC:CB:E0:D0:D0:5D:AC:09:3C:59:C2:43:2D:15:07:8C:D4:DF:AA:9B:A2"
+        "4A:CD:B6:6C:1A:7C:7C:DA:8E:47:65:EC:CB:E0:D0:D0:5D:AC:09:3C:59:C2:43:2D:15:07:8C:D4:DF:AA:9B:A2",
+        "08:A2:64:4C:89:D0:81:FA:E4:72:E9:37:C9:88:EF:03:A0:7E:0F:D4:00:C8:7B:5A:89:FE:79:18:6D:7E:49:5E"
       ]
     }
   }
