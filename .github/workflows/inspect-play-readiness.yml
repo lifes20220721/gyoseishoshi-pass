@@ -1,0 +1,75 @@
+name: Inspect Play test readiness
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/inspect-play-readiness.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gyosei-play-access
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    if: github.repository == 'lifes20220721/gyoseishoshi-pass' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts --no-audit --no-fund google-auth-library@10.5.0
+      - name: Read test releases, signing certificate and product states
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { GoogleAuth } from 'google-auth-library';
+          const credentials = JSON.parse(process.env.PLAY_SERVICE_ACCOUNT_JSON);
+          if (credentials.client_email !== 'gyosei-play-uploader@shihoshoshi-pass-ci.iam.gserviceaccount.com') throw new Error('WRONG_ACCOUNT');
+          const client = await new GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/androidpublisher'] }).getClient();
+          const root = 'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.gyoseishoshipass.app';
+          async function read(label, url, project) {
+            try {
+              const response = await client.request({ method: 'GET', url, timeout: 20000 });
+              console.log('READINESS', label, JSON.stringify(project(response.data)));
+            } catch (error) {
+              console.log('READINESS', label, 'HTTP', error.response?.status || 'NETWORK_ERROR');
+            }
+          }
+          for (const product of ['gyosei_premium_monthly', 'gyosei_premium_yearly']) {
+            await read(product, root + '/subscriptions/' + product, data => ({
+              productId: data.productId,
+              plans: (data.basePlans || []).map(plan => ({
+                id: plan.basePlanId, state: plan.state,
+                duration: plan.autoRenewingBasePlanType?.billingPeriodDuration,
+                legacyCompatible: plan.autoRenewingBasePlanType?.legacyCompatible,
+                jp: plan.regionalConfigs?.find(region => region.regionCode === 'JP')
+              }))
+            }));
+          }
+          await read('play-signing-certificates', root + '/generatedApks/2', data => ({
+            certificateSha256Hashes: (data.generatedApks || []).map(item => item.certificateSha256Hash)
+          }));
+          let editUrl;
+          try {
+            const response = await client.request({ method: 'POST', url: root + '/edits', data: {}, timeout: 20000 });
+            editUrl = root + '/edits/' + encodeURIComponent(response.data.id);
+            await read('internal-track', editUrl + '/tracks/internal', data => ({
+              track: data.track, releases: (data.releases || []).map(release => ({ name: release.name, status: release.status, versionCodes: release.versionCodes }))
+            }));
+            await read('test-list-configured', editUrl + '/testers/internal', data => ({
+              googleGroupCount: (data.googleGroups || []).length
+            }));
+          } finally {
+            if (editUrl) {
+              try { await client.request({ method: 'DELETE', url: editUrl, timeout: 20000 }); }
+              catch { console.error('TEMPORARY_EDIT_CLEANUP_FAILED'); process.exitCode = 1; }
+            }
+          }
+          NODE
