@@ -17,6 +17,23 @@
 
 アプリ自体の価格は「無料」のままにします。
 
+## 現在の確認結果（2026年11月18日）
+
+- 内部テスト: バージョン1.1.0（versionCode 2）の配信をAPIで確定し、再取得で `completed` を確認済みです。本番公開はしていません。
+  - 配信: https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44221904655
+  - 再確認: https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44222009371
+- 月額500円: `monthly` は `ACTIVE` です。
+- 年額5,000円: `yearly` は `DRAFT` です。価格・期間を検証した後の有効化APIがHTTP 403（The caller does not have permission）で拒否されました。Consoleで年額商品の基本プランを有効化する操作が残っています。価格変更は行っていません。
+  - 有効化試行: https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44222130523
+- ライセンステスター登録: Google Play Developer APIに対応する操作がありません。Play Consoleの「設定」→「ライセンステスト」で、実機のGoogleアカウントを登録する必要があります。内部テスト参加者の登録とは別です。
+- 内部テストのメールリストはAPIに表示されないため、APIのGoogleグループ件数だけでは参加者登録の有無を判定できません。
+- テスト購入は未実施です。実機では「テストカード、常に承認」とテスト購入表示を確認してから実行します。
+- 公開サイトの購入機能は未有効です。準備済みの購入UI・無料100問制限は `play-internal-automation` ブランチで保持しています。
+
+テスト参加URL: https://play.google.com/apps/testing/com.gyoseishoshipass.app （登録したテスターのアカウントで利用）
+
+Play Console: https://play.google.com/console/u/0/developers/8207914986576802573/app/4973020431377712705/app-dashboard
+
 ## 自動設定と必要な権限
 
 GitHub Actionsの `Configure Google Play subscriptions` は、登録済みの `PLAY_SERVICE_ACCOUNT_JSON` を使い、上記2商品の日本向け基本プランを下書き作成して価格・期間を再取得確認します。既存商品の価格が異なる場合は上書きせず停止します。
