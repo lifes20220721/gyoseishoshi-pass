@@ -1,0 +1,71 @@
+name: Prepare internal test release
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_internal:
+        description: Publish only the validated internal test release
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gyosei-play-access
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.repository == 'lifes20220721/gyoseishoshi-pass' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts --no-audit --no-fund google-auth-library@10.5.0
+      - name: Validate internal test release without changing production
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          COMMIT_INTERNAL: ${{ inputs.commit_internal }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { GoogleAuth } from 'google-auth-library';
+          const credentials = JSON.parse(process.env.PLAY_SERVICE_ACCOUNT_JSON);
+          if (credentials.client_email !== 'gyosei-play-uploader@shihoshoshi-pass-ci.iam.gserviceaccount.com') throw new Error('WRONG_ACCOUNT');
+          const client = await new GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/androidpublisher'] }).getClient();
+          const root = 'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.gyoseishoshipass.app';
+          let editUrl;
+          let committed = false;
+          try {
+            const { data: edit } = await client.request({ method: 'POST', url: root + '/edits', data: {}, timeout: 20000 });
+            editUrl = root + '/edits/' + encodeURIComponent(edit.id);
+            const { data: track } = await client.request({ method: 'GET', url: editUrl + '/tracks/internal', timeout: 20000 });
+            const releases = track.releases || [];
+            if (releases.length !== 1 || releases[0].versionCodes?.length !== 1 || String(releases[0].versionCodes[0]) !== '2') throw new Error('UNEXPECTED_INTERNAL_RELEASE');
+            if (releases[0].status === 'completed') {
+              console.log('INTERNAL_TEST_ALREADY_PUBLISHED');
+            } else {
+              if (releases[0].status !== 'draft') throw new Error('UNEXPECTED_RELEASE_STATUS');
+              await client.request({ method: 'PUT', url: editUrl + '/tracks/internal',
+                data: { track: 'internal', releases: [{ ...releases[0], status: 'completed' }] }, timeout: 20000 });
+              await client.request({ method: 'POST', url: editUrl + ':validate', data: {}, timeout: 20000 });
+              console.log('INTERNAL_TEST_VALIDATION_PASSED');
+              if (process.env.COMMIT_INTERNAL === 'true') {
+                await client.request({ method: 'POST', url: editUrl + ':commit', data: {}, timeout: 20000 });
+                committed = true;
+                console.log('INTERNAL_TEST_PUBLISHED_VERSION_2');
+              } else console.log('VALIDATION_ONLY_NO_RELEASE_COMMITTED');
+            }
+          } catch (error) {
+            console.error('INTERNAL_TEST_BLOCKED', error.response?.status || '',
+              String(error.response?.data?.error?.message || error.message).slice(0, 1000));
+            process.exitCode = 1;
+          } finally {
+            if (editUrl && !committed) {
+              try { await client.request({ method: 'DELETE', url: editUrl, timeout: 20000 }); }
+              catch { console.error('TEMPORARY_EDIT_CLEANUP_FAILED'); process.exitCode = 1; }
+            }
+          }
+          NODE
