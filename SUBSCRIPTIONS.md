@@ -32,7 +32,9 @@
 - 購入UI・無料100問制限・購入情報の復元を有効にしたコードを公開準備済みです。通常ブラウザで購入できない場合は購入ボタンを無効にし、Google Play版での利用方法を表示します。Google Play製品版トラックは引き続き未公開です。
 - 自動検証: クライアント11件、Workerとデプロイ8件、1000問・無料100問の教材検査を通過しました。モバイル幅のChromiumで、無料100問、模擬購入後1000問、再読込後の復元、期限切れで100問へ戻ることを確認しました。模擬テストではGoogleへの実購入リクエストは送っていません。
 
-テスト参加URL: https://play.google.com/apps/testing/com.gyoseishoshipass.app （登録したテスターのアカウントで利用）
+内部テスト参加URL: https://play.google.com/apps/internaltest/4699533234363870832 （ユーザーがConsoleからコピーしたリンク。登録したテスターのアカウントで利用）
+
+参加リンクはConsoleから取得し、パッケージ名から推測して生成しないでください。実機での参加・インストールは引き続き確認待ちです。
 
 Play Console: https://play.google.com/console/u/0/developers/8207914986576802573/app/4973020431377712705/app-dashboard
 
