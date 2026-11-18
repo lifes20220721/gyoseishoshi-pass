@@ -41,6 +41,11 @@ a { color: #176899; }
 .app-shell { max-width: 900px; min-height: 70vh; margin: auto; padding: 18px; }
 .panel { background: var(--paper); border: 1px solid rgba(23, 63, 95, .08); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
 .panel.compact { padding: 13px 16px; }
+.membership-card { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 18px; border-left: 5px solid var(--gold); }
+.membership-card h2 { margin: 4px 0 7px; font-size: 21px; }
+.membership-card p { margin: 0; line-height: 1.75; }
+.membership-actions { display: grid; justify-items: end; gap: 9px; }
+.membership-badge { display: inline-block; padding: 5px 10px; color: var(--navy); background: #fff3cf; border-radius: 999px; font-size: 12px; font-weight: 900; }
 .hero { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 22px; border-left: 5px solid var(--teal); }
 .hero h2 { margin: 8px 0; font-family: "Yu Mincho", serif; font-size: clamp(22px, 5vw, 29px); }
 .hero p { margin: 0; line-height: 1.8; }
@@ -210,6 +215,16 @@ footer p { margin: 5px; }
 .install-dialog form { padding: 20px; }
 .install-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .install-dialog-heading h2 { margin: 4px 0 0; font-size: 22px; }
+.premium-dialog { max-width: 600px; }
+.premium-dialog form > p { line-height: 1.8; }
+.premium-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 12px; }
+.premium-plans button { min-height: 118px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; padding: 16px; text-align: left; }
+.premium-plans button.recommended { color: white; background: var(--navy); border-color: var(--navy); }
+.premium-plans strong { font-size: 16px; }
+.premium-plans span { font-size: 22px; font-weight: 900; }
+.premium-plans small { color: var(--gold); font-weight: 900; }
+.billing-status { padding: 11px 13px; color: #456477; background: #edf3f3; border-radius: 9px; font-size: 12px; }
+.premium-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .dialog-close { min-width: 44px; padding: 6px; font-size: 24px; line-height: 1; }
 .install-instructions { margin: 18px 0; line-height: 1.85; }
 .install-instructions ol { padding-left: 24px; }
@@ -228,7 +243,8 @@ footer p { margin: 5px; }
   .hero button { width: 100%; }
   .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 9px; }
   .menu-card { min-height: 122px; padding: 14px; }
-  .official-card, .utility-panel, .sustainability-panel { grid-template-columns: 1fr; }
+  .official-card, .utility-panel, .sustainability-panel, .membership-card { grid-template-columns: 1fr; }
+  .membership-actions { justify-items: stretch; }
   .exam-group-grid { grid-template-columns: 1fr; }
   .priority-list li { grid-template-columns: 24px 32px 1fr; }
   .priority-list small { grid-column: 3; }
@@ -246,6 +262,7 @@ footer p { margin: 5px; }
   .sticky-actions button { padding: 9px 5px; font-size: 12px; }
   .consent-banner { grid-template-columns: 1fr; }
   .consent-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .premium-plans { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 390px) {
