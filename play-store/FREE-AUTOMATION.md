@@ -25,7 +25,7 @@ GOOGLE_APPLICATION_CREDENTIALS=./private/play-service-account.json npm run uploa
 
 送信は下書き登録までです。審査送信・テスター配信・本番公開は開始しません。既に内部テストで配信済みのリリースがある場合は、その配信を変更せず停止します。Google側の検証に失敗した場合は編集中の変更を破棄します。
 
-更新時のAAB作成は、既存の `scripts/build-release.mjs` を使います。アップロードには未使用のversionCodeが必要です。購入確認サーバーはCloudflare Workers無料プランへデプロイ済みで、`Deploy free billing Worker` ワークフローから更新できます。有料プランへの切り替えや課金リソースの作成は行っていません。
+更新時のAAB作成は、既存の `scripts/build-release.mjs` を使います。アップロードには未使用のversionCodeが必要です。購入確認サーバーはCloudflare Workers無料プランへデプロイ済みで、`Deploy purchase verification Worker` ワークフローから更新できます。有料プランへの切り替えや課金リソースの作成は行っていません。
 
 公式手順: https://developers.google.com/android-publisher/getting_started
 
