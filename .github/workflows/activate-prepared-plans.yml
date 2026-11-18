@@ -1,0 +1,73 @@
+name: Activate prepared Play subscription plans
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gyosei-play-access
+  cancel-in-progress: false
+
+jobs:
+  activate:
+    if: github.repository == 'lifes20220721/gyoseishoshi-pass' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts --no-audit --no-fund google-auth-library@10.5.0
+      - name: Verify exact Japanese prices and activate prepared plans
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { GoogleAuth } from 'google-auth-library';
+          const credentials = JSON.parse(process.env.PLAY_SERVICE_ACCOUNT_JSON);
+          if (credentials.client_email !== 'gyosei-play-uploader@shihoshoshi-pass-ci.iam.gserviceaccount.com') throw new Error('WRONG_ACCOUNT');
+          const client = await new GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/androidpublisher'] }).getClient();
+          const packageName = 'com.gyoseishoshipass.app';
+          const root = 'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/' + packageName + '/subscriptions';
+          const products = [
+            { id: 'gyosei_premium_monthly', planId: 'monthly', period: 'P1M', yen: '500' },
+            { id: 'gyosei_premium_yearly', planId: 'yearly', period: 'P1Y', yen: '5000' }
+          ];
+          function check(data, product) {
+            const plan = data.basePlans?.find(item => item.basePlanId === product.planId);
+            const jp = plan?.regionalConfigs?.find(item => item.regionCode === 'JP');
+            if (data.packageName !== packageName || data.productId !== product.id ||
+                plan?.autoRenewingBasePlanType?.billingPeriodDuration !== product.period ||
+                plan.autoRenewingBasePlanType.legacyCompatible !== true ||
+                jp?.price?.currencyCode !== 'JPY' || String(jp.price.units) !== product.yen ||
+                Number(jp.price.nanos || 0) !== 0 || jp.newSubscriberAvailability !== true)
+              throw new Error('PLAN_CONFIGURATION_MISMATCH: ' + product.id);
+            if (!['ACTIVE', 'DRAFT'].includes(plan.state)) throw new Error('UNEXPECTED_PLAN_STATE: ' + product.id);
+            return plan;
+          }
+          try {
+            // Validate both plans before making any mutation.
+            const checked = [];
+            for (const product of products) {
+              const { data } = await client.request({ method: 'GET', url: root + '/' + product.id, timeout: 20000 });
+              checked.push({ product, plan: check(data, product) });
+            }
+            for (const { product, plan } of checked) {
+              if (plan.state !== 'ACTIVE') {
+                const { data } = await client.request({ method: 'POST',
+                  url: root + '/' + product.id + '/basePlans/' + product.planId + ':activate',
+                  data: {}, timeout: 20000 });
+                if (check(data, product).state !== 'ACTIVE') throw new Error('ACTIVATION_NOT_CONFIRMED');
+              }
+              const { data } = await client.request({ method: 'GET', url: root + '/' + product.id, timeout: 20000 });
+              if (check(data, product).state !== 'ACTIVE') throw new Error('READBACK_NOT_ACTIVE');
+              console.log('PLAN_ACTIVE', product.id, 'JPY', product.yen, product.period);
+            }
+          } catch (error) {
+            console.error('PLAN_ACTIVATION_BLOCKED', error.response?.status || '',
+              String(error.response?.data?.error?.message || error.message).slice(0, 1000));
+            process.exitCode = 1;
+          }
+          NODE
