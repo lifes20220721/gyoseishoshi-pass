@@ -12,7 +12,7 @@
   <meta property="og:locale" content="ja_JP">
   <meta property="og:site_name" content="行政書士PASS">
   <meta property="og:title" content="行政書士PASS | 全1000問で学ぶ">
-  <meta property="og:description" content="行政法を重点強化した、無料で学べる行政書士試験の科目別テキスト・図解・独自問題1000問。">
+  <meta property="og:description" content="行政法を重点強化した、行政書士試験の科目別テキスト・図解・独自問題1000問。無料で100問を体験できます。">
   <meta property="og:url" content="https://gyoseishoshipass.com/">
   <meta name="twitter:card" content="summary">
   <title>行政書士PASS | オリジナル問題で学ぶ</title>
@@ -30,10 +30,12 @@
   <script defer src="administrative-focus-v0.4.0.js"></script>
   <script defer src="administrative-trend-v0.5.0.js"></script>
   <script defer src="mega-bank-v1.0.0.js"></script>
+  <script defer src="subscription-config.js"></script>
+  <script defer src="subscription.js"></script>
   <script defer src="app.js"></script>
   <script defer src="monetization-config.js"></script>
   <script defer src="monetization.js"></script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"行政書士PASS","url":"https://gyoseishoshipass.com/","description":"行政書士試験の科目別テキスト、図解、独自問題1000問を無料で学べる非公式学習サイト","inLanguage":"ja","publisher":{"@type":"Person","name":"lifes20220721","url":"https://github.com/lifes20220721"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"行政書士PASS","url":"https://gyoseishoshipass.com/","description":"行政書士試験の科目別テキスト、図解、独自問題1000問で学べる非公式学習サイト。無料体験100問。","inLanguage":"ja","publisher":{"@type":"Person","name":"lifes20220721","url":"https://github.com/lifes20220721"}}</script>
 <style id="pass-related-styles">.pass-related-nav{max-width:900px;margin:12px auto 0;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;font-size:13px;box-sizing:border-box}.pass-related-nav--inset{margin-top:0;padding:0 18px 16px}.pass-related-nav>span{color:#d7e6ee}.pass-related-nav a{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border:1px solid #abc8d9;border-radius:9px;color:#fff;text-decoration:none;line-height:1.5;box-sizing:border-box}.pass-related-nav a:hover{background:rgba(255,255,255,.12)}.pass-related-nav a:focus-visible,.pass-related-footer a:focus-visible{outline:3px solid #d5b46d;outline-offset:4px}.pass-related-footer{margin-top:12px;line-height:1.8}.pass-related-footer a{display:inline-block;padding:8px 0}</style></head>
 <body>
   <a class="skip-link" href="#app">本文へ移動</a>
@@ -52,9 +54,21 @@
     <section id="homeView" class="view">
       <div id="resumeCard" class="resume-card hidden" aria-live="polite"></div>
 
+      <section id="membershipCard" class="panel membership-card" aria-labelledby="membershipTitle">
+        <div>
+          <p class="kicker">MEMBERSHIP</p>
+          <h2 id="membershipTitle">無料プラン</h2>
+          <p id="membershipDescription">全1000問のうち100問（10%）を学習できます。</p>
+        </div>
+        <div class="membership-actions">
+          <span id="membershipBadge" class="membership-badge">無料100問</span>
+          <button class="primary" data-action="open-premium" type="button">全1000問を利用する</button>
+        </div>
+      </section>
+
       <section class="hero panel">
         <div>
-          <span class="pill">アプリ対応 Ver.1.3.0</span>
+          <span class="pill">アプリ対応 Ver.1.4.0</span>
           <h2>今日の学習を、すぐ始める</h2>
           <p>行政法7講義を軸に6科目を横断。濃いテキスト・図解・独自問題で、制度を比較しながら学べます。</p>
         </div>
@@ -94,7 +108,7 @@
           <summary>行政法の内訳を見る</summary>
           <p>行政法の一般的な法理論、行政手続法、行政不服審査法、行政事件訴訟法、国家賠償法、地方自治法を中心に学習します。</p>
         </details>
-        <p class="trend-summary"><strong>全1000問・行政法396問の独自問題バンク。</strong><br>2021〜2025年度の公式問題300問を分野別に分析し、○×341問・5肢択一506問・多肢選択式48問・40字記述式105問を収録しています。公式問題本文は転載していません。</p>
+        <p class="trend-summary"><strong>全1000問・行政法396問の独自問題バンク。</strong><br>2021〜2025年度の公式問題300問を分野別に分析。無料プランは科目・形式別に選定した100問（10%）、プレミアムは全1000問を利用できます。公式問題本文は転載していません。</p>
       </section>
 
       <section class="panel priority-panel" aria-labelledby="priorityTitle">
@@ -161,11 +175,11 @@
 
       <section class="panel sustainability-panel" aria-labelledby="sustainabilityTitle">
         <div>
-          <p class="kicker">SUSTAINABLE FREE ACCESS</p>
-          <h2 id="sustainabilityTitle">無料公開を続けるために</h2>
-          <p>本サイトは広告・アフィリエイト収益を運営費と教材改善に充てる方針です。広告主や提携先が、問題・解説・重要度の評価に関与することはありません。</p>
+          <p class="kicker">FREE &amp; PREMIUM</p>
+          <h2 id="sustainabilityTitle">無料100問・有料全1000問</h2>
+          <p>無料で全体の10%を体験できます。プレミアムは月額500円または年額5,000円で、すべての問題を学習できます。</p>
         </div>
-        <a class="policy-link" href="terms.html#advertising">広告・収益化方針を見る</a>
+        <button class="primary" data-action="open-premium" type="button">プランを見る</button>
       </section>
 
       <aside class="ad-container hidden" data-ad-placement="homeBottom" aria-label="広告">
@@ -272,7 +286,7 @@
   </main>
 
   <footer>
-    <p>行政書士PASS Ver.1.3.0｜全1000問・オリジナル教材・非公式サイト</p>
+    <p>行政書士PASS Ver.1.4.0｜無料100問・プレミアム全1000問・非公式サイト</p>
     <nav class="footer-nav" aria-label="サイト情報">
       <a href="privacy.html">プライバシーポリシー</a>
       <a href="terms.html">利用規約・免責事項</a>
@@ -300,6 +314,25 @@
       </div>
       <div id="installInstructions" class="install-instructions"></div>
       <button class="primary dialog-done" value="cancel">閉じる</button>
+    </form>
+  </dialog>
+  <dialog id="premiumDialog" class="install-dialog premium-dialog" aria-labelledby="premiumDialogTitle">
+    <form method="dialog">
+      <div class="install-dialog-heading">
+        <div><p class="kicker">PREMIUM</p><h2 id="premiumDialogTitle">全1000問を学習</h2></div>
+        <button class="dialog-close" value="cancel" aria-label="閉じる">×</button>
+      </div>
+      <p>無料プランは100問（10%）。プレミアムに加入すると、全6科目・全4形式の1000問を利用できます。</p>
+      <div class="premium-plans">
+        <button data-subscription-purchase="gyosei_premium_monthly" type="button" disabled><strong>月額プラン</strong><span id="monthlyPrice">月500円</span></button>
+        <button class="recommended" data-subscription-purchase="gyosei_premium_yearly" type="button" disabled><strong>年額プラン</strong><span id="yearlyPrice">年5,000円</span><small>2か月分お得</small></button>
+      </div>
+      <p>定期購入は自動更新されます。解約はGoogle Playの「お支払いと定期購入」から行えます。解約後も購入済み期間の終了まで利用できます。<a href="terms.html">利用規約</a></p>
+      <p id="billingStatus" class="billing-status" aria-live="polite">Google Playの購入情報を確認中です。</p>
+      <div class="premium-dialog-actions">
+        <button data-action="restore-purchases" type="button">購入情報を復元</button>
+        <button value="cancel">閉じる</button>
+      </div>
     </form>
   </dialog>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>

@@ -29,7 +29,9 @@ const run = (command, args) => {
   if (result.status !== 0) process.exit(result.status || 1);
 };
 
-run(path.join(projectDir, 'gradlew'), ['bundleRelease']);
+const gradleArgs = ['bundleRelease'];
+if (process.env.GRADLE_OFFLINE === 'true') gradleArgs.unshift('--offline');
+run(path.join(projectDir, 'gradlew'), gradleArgs);
 run(path.join(javaHome, 'bin', 'jarsigner'), [
   '-sigalg', 'SHA256withRSA',
   '-digestalg', 'SHA-256',

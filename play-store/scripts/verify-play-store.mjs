@@ -24,12 +24,15 @@ const privacy = fs.readFileSync(path.join(repoRoot, 'privacy.html'), 'utf8');
 
 const checks = [
   [twa.packageId === 'com.gyoseishoshipass.app', 'パッケージ名'],
-  [twa.appVersionCode >= 1, 'versionCode'],
+  [twa.appVersionCode === 2 && /versionCode 2/.test(gradle), 'versionCode 2'],
+  [twa.appVersionName === '1.1.0' && /versionName "1\.1\.0"/.test(gradle), 'バージョン 1.1.0'],
   [/compileSdkVersion 36/.test(gradle) && /targetSdkVersion 36/.test(gradle), 'API 36'],
   [/minSdkVersion 24/.test(gradle), 'Minimum API 24'],
   [!gradle.includes('127.0.0.1') && gradle.includes('https://gyoseishoshipass.com/'), '公開URL'],
   [assetLinks.some((entry) => entry?.target?.package_name === twa.packageId), 'Digital Asset Links'],
-  [privacy.includes('Androidアプリ'), 'Android向けプライバシー記載']
+  [privacy.includes('Androidアプリ'), 'Android向けプライバシー記載'],
+  [twa.features?.playBilling?.enabled === true && gradle.includes('com.google.androidbrowserhelper:billing:1.2.0'), 'Google Play Billing'],
+  [privacy.includes('定期購入の確認'), '定期購入向けプライバシー記載']
 ];
 
 for (const [passed, label] of checks) {
