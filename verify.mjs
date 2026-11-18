@@ -281,7 +281,11 @@ assert(fs.readFileSync(path.join(root, 'MONETIZATION.md'), 'utf8').includes('Goo
 const subscriptionConfig = fs.readFileSync(path.join(root, 'subscription-config.js'), 'utf8');
 const subscriptionClient = fs.readFileSync(path.join(root, 'subscription.js'), 'utf8');
 const billingBackend = fs.readFileSync(path.join(root, 'billing-backend', 'server.mjs'), 'utf8');
-assert(subscriptionConfig.includes('enabled: false'), '購入確認サーバーの公開前は課金を有効化してはいけません');
+const billingConfig = context.window.GYOPASS_SUBSCRIPTION_CONFIG;
+assert.equal(typeof billingConfig.enabled, 'boolean');
+if (billingConfig.enabled) {
+  assert.equal(billingConfig.verificationEndpoint, 'https://gyoseishoshi-pass-billing.gyosei-pass-85cbe232.workers.dev/v1/subscriptions/verify', '課金を有効にする場合は公開済みの購入確認サーバーを指定してください');
+}
 assert(subscriptionConfig.includes('gyosei_premium_monthly'));
 assert(subscriptionConfig.includes('gyosei_premium_yearly'));
 assert(subscriptionClient.includes('purchaseToken'));

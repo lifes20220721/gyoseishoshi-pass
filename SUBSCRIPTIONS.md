@@ -23,12 +23,14 @@
   - 配信: https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44221904655
   - 再確認: https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44222009371
 - 月額500円: `monthly` は `ACTIVE` です。
-- 年額5,000円: `yearly` は `DRAFT` です。価格・期間を検証した後の有効化APIがHTTP 403（The caller does not have permission）で拒否されました。Consoleで年額商品の基本プランを有効化する操作が残っています。価格変更は行っていません。
-  - 有効化試行: https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44222130523
-- ライセンステスター登録: Google Play Developer APIに対応する操作がありません。Play Consoleの「設定」→「ライセンステスト」で、実機のGoogleアカウントを登録する必要があります。内部テスト参加者の登録とは別です。
+- 年額5,000円: Consoleでの有効化後、`yearly` の `ACTIVE` をAPIで確認しました。月額・年額とも日本価格・期間・互換設定が一致しています。
+  - 最新確認: https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44228822012
+- ライセンステスター登録: 提示された画面で「行政書士購入テスト」が選択され、1人の登録と保存完了の表示を確認しました。公開に使用する開発者アカウントは自動的にライセンステスターとして扱われます。別アカウントの登録はConsoleから行い、公開APIには対応する操作がありません。内部テスト参加者の登録とは別です。
+  - 公式手順: https://support.google.com/googleplay/android-developer/answer/6062777?hl=ja
 - 内部テストのメールリストはAPIに表示されないため、APIのGoogleグループ件数だけでは参加者登録の有無を判定できません。
 - テスト購入は未実施です。実機では「テストカード、常に承認」とテスト購入表示を確認してから実行します。
-- 公開サイトの購入機能は未有効です。準備済みの購入UI・無料100問制限は `play-internal-automation` ブランチで保持しています。
+- 購入UI・無料100問制限・購入情報の復元を有効にしたコードを公開準備済みです。通常ブラウザで購入できない場合は購入ボタンを無効にし、Google Play版での利用方法を表示します。Google Play製品版トラックは引き続き未公開です。
+- 自動検証: クライアント11件、Workerとデプロイ8件、1000問・無料100問の教材検査を通過しました。モバイル幅のChromiumで、無料100問、模擬購入後1000問、再読込後の復元、期限切れで100問へ戻ることを確認しました。模擬テストではGoogleへの実購入リクエストは送っていません。
 
 テスト参加URL: https://play.google.com/apps/testing/com.gyoseishoshipass.app （登録したテスターのアカウントで利用）
 
@@ -42,7 +44,7 @@ GitHub Actionsの `Configure Google Play subscriptions` は、登録済みの `P
 
 2026年11月16日、Consoleで保存された月額・年額商品をAPIで取得し、月額500円（P1M）と年額5,000円（P1Y）、基本プランID `monthly` / `yearly` が一致することを確認しました。確認実行: https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/43870093834 。商品の新規作成APIは引き続きHTTP 403のため、初回商品はConsoleから作成済みです。
 
-2026年11月16日、Cloudflare接続とWorker公開を実施しました。検証URLは `https://gyoseishoshi-pass-billing.gyosei-pass-85cbe232.workers.dev/v1/subscriptions/verify` です。外部HTTPS疎通、CORS、未許可Originの拒否、Googleへの無効購入照会と拒否を確認しました。アプリ側の購入機能はまだ有効にしていません。有効な購入・承認・復元・解約の実機テストが残っています。
+2026年11月16日、Cloudflare接続とWorker公開を実施しました。検証URLは `https://gyoseishoshi-pass-billing.gyosei-pass-85cbe232.workers.dev/v1/subscriptions/verify` です。外部HTTPS疎通、CORS、未許可Originの拒否、Googleへの無効購入照会と拒否を確認しました。11月18日にアプリ側の購入機能を有効化する準備を完了しました。有効な購入・承認・復元・解約の実機テストが残っています。
 
 ## 課金を有効にする条件
 

@@ -194,10 +194,13 @@
       checking: 'Google Playの購入情報を確認中です。',
       premium: 'プレミアムを利用中です。',
       free: '現在は無料プランです。',
-      unavailable: 'この環境ではGoogle Playの購入情報を確認できません。',
+      unavailable: 'Google Playからインストールしたアプリでご利用ください。アプリ内で表示される場合は通信状態を確認し、「購入情報を復元」を押してください。',
       preparing: 'Google Play定期購入の公開準備中です。準備完了まで購入は発生しません。'
     };
     $('billingStatus').textContent = messages[snapshot.status] || messages.preparing;
+    document.querySelectorAll('[data-subscription-purchase]').forEach(button => {
+      button.disabled = snapshot.status !== 'free';
+    });
   }
 
   function renderResume() {

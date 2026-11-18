@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'gyoseishoshi-pass-';
-const CACHE = `${CACHE_PREFIX}v1.4.0-app-1`;
+const CACHE = `${CACHE_PREFIX}v1.4.0-billing-2`;
 const ASSETS = ['./', './index.html', './styles.css', './legal.css', './data.js', './reinforcement-v0.3.0.js', './administrative-focus-v0.4.0.js', './administrative-trend-v0.5.0.js', './mega-bank-v1.0.0.js', './subscription-config.js', './subscription.js', './app.js', './monetization-config.js', './monetization.js', './privacy.html', './terms.html', './contact.html', './sources.html', './manifest.webmanifest', './icons/app-icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', event => {

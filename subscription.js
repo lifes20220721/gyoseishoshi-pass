@@ -130,18 +130,19 @@
       total: { label: '合計', amount: { currency: 'JPY', value: '0' } }
     });
     const response = await request.show();
+    let acknowledged;
     try {
-      const acknowledged = await verifyPurchase({ itemId: productId, purchaseToken: response.details.purchaseToken });
-      await response.complete(acknowledged ? 'success' : 'fail');
-      if (!acknowledged) throw new Error('verification-failed');
-      premium = true;
-      status = 'premium';
-      emitChange();
-      return true;
+      acknowledged = await verifyPurchase({ itemId: productId, purchaseToken: response.details.purchaseToken });
     } catch (error) {
       await response.complete('fail').catch(() => {});
       throw error;
     }
+    await response.complete(acknowledged ? 'success' : 'fail');
+    if (!acknowledged) throw new Error('verification-failed');
+    premium = true;
+    status = 'premium';
+    emitChange();
+    return true;
   }
 
   window.GYOPASS_SUBSCRIPTION = Object.freeze({

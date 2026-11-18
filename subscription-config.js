@@ -1,7 +1,7 @@
 'use strict';
 
 window.GYOPASS_SUBSCRIPTION_CONFIG = Object.freeze({
-  enabled: false,
+  enabled: true,
   packageName: 'com.gyoseishoshipass.app',
   verificationEndpoint: 'https://gyoseishoshi-pass-billing.gyosei-pass-85cbe232.workers.dev/v1/subscriptions/verify',
   freeQuestionCount: 100,

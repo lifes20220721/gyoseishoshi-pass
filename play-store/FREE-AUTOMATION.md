@@ -43,6 +43,6 @@ GOOGLE_APPLICATION_CREDENTIALS=./private/play-service-account.json npm run uploa
 2026年11月18日に内部テスト配信を確定し、再取得で `completed` を確認しました。
 https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44221904655
 
-`Activate prepared Play subscription plans` は、月額500円・年額5,000円、日本向け・期間・互換設定を両方検証してから下書き基本プランだけを有効化します。既存の価格や停止済みプランは変更しません。年額プランの有効化はGoogle側のHTTP 403で拒否されており、Consoleでの操作が残っています。
+`Activate prepared Play subscription plans` は、月額500円・年額5,000円、日本向け・期間・互換設定を両方検証してから下書き基本プランだけを有効化します。既存の価格や停止済みプランは変更しません。年額プランの有効化APIはGoogle側のHTTP 403で拒否されたため、Consoleで有効化されました。最新の読み取り確認では両プランとも `ACTIVE` です。
 
 ライセンステスター登録は公開APIが提供されていないため、Consoleで設定します。内部テストへの配信だけでは購入が無料になるとは限りません。詳細と残りの作業は [SUBSCRIPTIONS.md](../SUBSCRIPTIONS.md) に記録しています。
