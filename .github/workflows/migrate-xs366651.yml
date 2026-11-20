@@ -1,0 +1,78 @@
+name: Migrate both PASS sites to xs366651
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Verify files, inspect target without writes, or upload both sites
+        type: choice
+        options: [verify-packages, inspect-server, upload-both]
+        default: verify-packages
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xserver-xs366651-both-pass-sites
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    if: github.repository == 'lifes20220721/gyoseishoshi-pass' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: b890870
+          fetch-depth: 0
+          persist-credentials: false
+          path: administrative
+      - uses: actions/checkout@v4
+        with:
+          repository: lifes20220721/shihoshoshi-pass
+          ref: 91db70d8218a1cd7464a9d7f4909b42a490e4131
+          fetch-depth: 0
+          persist-credentials: false
+          path: judicial
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify rollback behavior and current judicial content
+        run: |
+          python -m unittest discover -s administrative/hosting/xserver -p 'test_*.py' -v
+          node judicial/tests/content.cjs
+          node judicial/tests/resume.cjs
+      - name: Build and verify paired packages
+        run: |
+          python administrative/hosting/xserver/build_packages.py --judicial-source judicial --output packages
+          python administrative/hosting/xserver/verify_sources.py --packages packages --administrative-source administrative --judicial-source judicial
+      - name: Report credential availability without values
+        env:
+          XSERVER_FTP_PASSWORD: ${{ secrets.XSERVER_FTP_PASSWORD }}
+        run: |
+          python - <<'PY'
+          import os
+          print('XSERVER_FTP_PASSWORD_CONFIGURED', bool(os.environ.get('XSERVER_FTP_PASSWORD')))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pass-xs366651-static-packages
+          path: packages/
+          retention-days: 14
+      - name: Inspect both destination folders without writes
+        if: inputs.action == 'inspect-server'
+        env:
+          XSERVER_FTP_PASSWORD: ${{ secrets.XSERVER_FTP_PASSWORD }}
+        run: python administrative/hosting/xserver/deploy.py --packages packages --inspect-only
+      - name: Back up, stage and publish both sites
+        if: inputs.action == 'upload-both'
+        env:
+          XSERVER_FTP_PASSWORD: ${{ secrets.XSERVER_FTP_PASSWORD }}
+        run: python administrative/hosting/xserver/deploy.py --packages packages
+      - name: Verify both HTTPS origins before any DNS change
+        if: inputs.action == 'upload-both'
+        run: python administrative/hosting/xserver/verify_origin.py --packages packages
