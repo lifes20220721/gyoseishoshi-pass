@@ -1,0 +1,21 @@
+{
+  "server_id": "xs366651",
+  "ftp_host": "sv17351.xserver.jp",
+  "expected_ipv4": "85.131.200.112",
+  "ftp_port": 21,
+  "sites": [
+    {
+      "name": "gyoseishoshi-pass",
+      "domain": "gyoseishoshipass.com",
+      "archive": "gyoseishoshi-pass.zip",
+      "source_commit": "b7e5120dfa3450755d94f7a8eb6208a154ebcec1",
+      "prepared_archive_sha256": "29380a2f8a57142e9d31162f17110d7dfa7b3253cc502aaa4ee75f8f7c300ebb"
+    },
+    {
+      "name": "shihoshoshi-pass",
+      "domain": "shihoshoshipass.com",
+      "archive": "shihoshoshi-pass.zip",
+      "source_commit": "91db70d8218a1cd7464a9d7f4909b42a490e4131"
+    }
+  ]
+}

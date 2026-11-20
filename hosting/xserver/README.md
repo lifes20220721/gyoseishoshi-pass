@@ -1,0 +1,52 @@
+# xs366651 への両PASSサイト移行
+
+移行先はプレミアムの `xs366651`、接続ホストは `sv17351.xserver.jp` です。
+2026年11月20日に初期ドメインのAレコードとIPの逆引きで確認したIPv4は `85.131.200.112` です。
+
+| サイト | ドメイン | メインFTPログイン後の配置先 |
+| --- | --- | --- |
+| 行政書士PASS | gyoseishoshipass.com | gyoseishoshipass.com/public_html/ |
+| 司法書士PASS | shihoshoshipass.com | shihoshoshipass.com/public_html/ |
+
+行政書士PASSは準備済みZIPをそのまま使います。SHA-256を `plan.json` に記録し、内容の差し替えを防いでいます。
+司法書士PASSは `plan.json` に固定したコミットから、教材・過去問PDF・アプリ用プライバシーページを含めてまとめます。
+両サイトとも既存のドメインとHTTPSを維持し、学習履歴の保存キーやアプリのパッケージ名を変更しません。
+行政書士PASSの購入確認は既存Cloudflare Workerを継続使用します。Google秘密鍵や署名鍵をWeb公開フォルダへコピーしません。
+
+## 接続情報
+
+行政書士PASSリポジトリの Actions secret に `XSERVER_FTP_PASSWORD` を登録します。
+値は新サーバー `xs366651` のメインFTPアカウントのパスワードです。XServerアカウント全体のログインパスワードとは異なります。
+ホスト名とユーザー名は移行計画に固定済みで、パスワードはログやファイルに保存しません。
+
+登録画面: https://github.com/lifes20220721/gyoseishoshi-pass/settings/secrets/actions/new
+
+## サーバー側の前提
+
+- 新サーバーのドメイン設定に両ドメインがあり、それぞれ `public_html` が存在すること。
+- 両ドメインの無料独自SSLが有効であること。HTTPS検証はDNS切り替え前に新IPへ直接接続して行います。
+- 他サーバーに同じドメインが設定済みで追加できない場合は、既存データ・メール設定を退避してから対処してください。自動処理では旧サーバーのドメイン設定を削除しません。
+
+XServerのドメイン削除はフォルダのデータ削除を伴うため、移行元の削除や旧契約の解約を自動処理には含めていません。
+
+公式:
+- https://www.xserver.ne.jp/manual/man_ftp_setting.php
+- https://www.xserver.ne.jp/manual/man_ftp_spec.php
+- https://www.xserver.ne.jp/support/faq/domain_multi_setting_server_change.php
+
+## 一括処理の順序
+
+`Migrate both PASS sites to xs366651` ワークフローを使います。
+
+1. `verify-packages`: 両ZIPのパス、HTML参照、オフライン用ファイルと教材を検証します。接続情報の有無だけを表示し、サーバーへ接続しません。
+2. `inspect-server`: TLSで接続し、両ドメインの配置先と既存ファイルを読み取り確認します。書き込みません。
+3. `upload-both`: 両方の配置先を確認してから、既存ファイルをサーバーの公開フォルダ外 `.pass-migration/<batch>/backup/` に保管し、新ファイルをステージングして照合後に反映します。管理対象外ファイルは削除しません。途中失敗時は、今回変更した公開ファイルを両サイトとも復元します。
+4. 新IPへのHTTPS直接接続で両サイトの全ファイルを照合します。TLS検証を無効にはしません。SSL未設定やリダイレクト、内容不一致があればDNS切り替え準備未完了として停止します。
+
+ワークフローは、パッケージ作成後に元リポジトリの公開ファイルが更新されていた場合も停止します。
+DNSはこのワークフローでは変更しません。両サイトの検証成功後に、Web用A/AAAA/CNAMEを確認して切り替えます。MX・TXTなどのメール設定を一括上書きしません。
+
+## 検証状況
+
+準備済みZIPの同一性、両サイトの参照ファイル、バックアップと二つ目のサイトで失敗した際の復元を検査します。
+現時点ではXServerへの実転送・SSL確認・DNS切り替えは未完了です。実転送の完了はワークフロー結果で判断します。
