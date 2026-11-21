@@ -11,19 +11,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: a1ccb7d74eb46abb028590fbcf401f3b8d53a02c
+          ref: 4e1b17f74c02912cf9e26707435281d6189b8ce2
           persist-credentials: false
       - name: Verify every placed file by direct IP and check existing public services
         run: |
           python - <<'PY'
-          from contextlib import closing
-          import json,sys,secrets,re
+          import datetime,json,socket,sys,urllib.request
+          from pathlib import Path
           sys.path.insert(0,'hosting/xs968799')
-          from deploy import OldServerHTTP
-          for domain in ['gyoseishoshipass.com','shihoshoshipass.com']:
-              for path in ['/icons/','/icons/blank.gif','/icons/icon-192.png?probe='+secrets.token_hex(8)]:
-                  with closing(OldServerHTTP(domain,timeout=20)) as c:
-                      c.request('GET',path,headers={'Cache-Control':'no-cache'})
-                      r=c.getresponse();b=r.read(20000)
-                      print('ICON_DIAGNOSIS',json.dumps({'domain':domain,'path':path,'status':r.status,'type':r.getheader('Content-Type'),'body_excerpt':b[:400].decode('utf-8',errors='replace') if 'text' in (r.getheader('Content-Type') or '') else None}),flush=True)
+          from deploy import http_verify,load_release,icon_compatibility
+          result={'server_id':'xs968799','observed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              'http_verification':http_verify(icon_compatibility(load_release())[0]),'dns_changed':False,
+              'ftp_verification_run':'https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44906267773'}
+          result['public_ipv4']={d:sorted(set(socket.gethostbyname_ex(d)[2])) for d in ['gyoseishoshipass.com','shihoshoshipass.com']}
+          with urllib.request.urlopen('https://xs968799.xsrv.jp/pass-review/healthz',timeout=20) as response:
+              result['review_api']={'status':response.status,'ok':json.load(response).get('ok')}
+          Path('http-report.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          print('FINAL_HTTP_RESULT',json.dumps(result),flush=True)
+          if any(s['errors'] for s in result['http_verification']) or result['review_api']!={'status':200,'ok':True}:
+              raise SystemExit('READ_ONLY_VERIFICATION_INCOMPLETE')
           PY
+      - name: Save read-only verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xs968799-final-http-${{ github.run_id }}
+          path: http-report.json
+          if-no-files-found: ignore
+          retention-days: 30
