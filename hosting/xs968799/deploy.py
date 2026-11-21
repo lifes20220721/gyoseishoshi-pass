@@ -1,5 +1,6 @@
 """Place the prepared static sites on xs968799 only. No DNS or deletion commands."""
 import argparse
+from contextlib import closing
 import ftplib
 import hashlib
 import http.client
@@ -166,6 +167,23 @@ def verify(remote, sites):
     return result
 
 
+def backup_inventory(remote, sites):
+    inventory = []
+    base = PurePosixPath('.pass-placement')
+    for batch, facts in remote.listing(base).items():
+        if len(batch) != 20 or any(c not in '0123456789abcdef' for c in batch) or facts.get('type') != 'dir':
+            continue
+        backups = []
+        for domain, files in sites.items():
+            for name in files:
+                path = base / batch / 'backup' / domain / name
+                if remote.exists(path, 'file'):
+                    data = remote.read(path)
+                    backups.append({'domain': domain, 'file': name, 'sha256': digest(data), 'bytes': len(data)})
+        inventory.append({'backup_directory': str(base / batch / 'backup'), 'files': backups})
+    return inventory
+
+
 def place(remote, sites, batch):
     if not batch.isalnum():
         raise ValueError('INVALID_BATCH')
@@ -235,7 +253,7 @@ def http_verify(sites):
         checked, errors = 0, []
         for name, body in files.items():
             try:
-                with OldServerHTTP(domain, timeout=30) as connection:
+                with closing(OldServerHTTP(domain, timeout=30)) as connection:
                     connection.request('GET', '/' + name, headers={'Cache-Control': 'no-cache'})
                     response = connection.getresponse()
                     data = response.read(100 * 1024 * 1024 + 1)
@@ -277,10 +295,15 @@ def main():
             report.update(place(remote, sites, secrets.token_hex(10)))
         else:
             report['verification'] = verify(remote, sites)
+            report['private_backups'] = backup_inventory(remote, sites)
     if args.action != 'inspect':
+        args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+        print('FTP_VERIFICATION_RESULT', json.dumps(report), flush=True)
         report['http_verification'] = http_verify(sites)
     args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     print('OLD_SERVER_RESULT', json.dumps(report), flush=True)
+    if any(item['errors'] for item in report.get('http_verification', [])):
+        raise SystemExit('HTTP_VERIFICATION_INCOMPLETE: see saved report')
 
 
 if __name__ == '__main__':

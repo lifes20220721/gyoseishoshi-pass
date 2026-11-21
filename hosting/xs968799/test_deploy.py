@@ -1,8 +1,12 @@
 import ftplib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import PurePosixPath
+import socket
+import threading
 import unittest
+from unittest.mock import patch
 
-from deploy import Remote, place, preflight
+from deploy import Remote, place, preflight, http_verify
 
 
 class MemoryFTP:
@@ -115,6 +119,42 @@ class PlacementTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'UNEXPECTED_REMOTE_TYPE'):
             place(Remote(ftp), self.sites, 'testbatch')
         self.assertEqual(ftp.operations, [])
+
+    def test_http_uses_old_ip_and_domain_host_and_checks_every_file(self):
+        requests = []
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                requests.append((self.headers['Host'], self.path))
+                body = b'placed content'
+                self.send_response(200)
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            def log_message(self, *args):
+                pass
+        server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        original_connect = socket.create_connection
+        destinations = []
+        def connect(address, timeout):
+            destinations.append(address)
+            return original_connect(server.server_address, timeout)
+        try:
+            with patch('deploy.socket.create_connection', side_effect=connect):
+                results = http_verify({'gyoseishoshipass.com': {
+                    'index.html': b'placed content', 'app.js': b'placed content',
+                    'mismatch.js': b'expected different content'}})
+            self.assertEqual(destinations, [('85.131.200.80', 80)] * 3)
+            self.assertEqual(requests, [('gyoseishoshipass.com', '/' + n)
+                                        for n in ('index.html', 'app.js', 'mismatch.js')])
+            self.assertEqual(results[0]['verified_files'], 2)
+            self.assertEqual(results[0]['errors'], [{'file': 'mismatch.js', 'http_status': 200,
+                                                   'sha256_match': False}])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
 
 
 if __name__ == '__main__':
