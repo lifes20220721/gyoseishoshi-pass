@@ -1,0 +1,51 @@
+name: Place prepared PASS sites on old xs968799
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Old server only. DNS remains unchanged."
+        type: choice
+        options: [inspect, place-both, verify]
+        default: inspect
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xs968799-static-placement
+  cancel-in-progress: false
+
+jobs:
+  place:
+    if: github.repository == 'lifes20220721/gyoseishoshi-pass' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7264ff256884478f269f73044c6f641099220dac
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test paired placement and rollback
+        run: python -m unittest discover -s hosting/xs968799 -v
+      - name: Validate prepared archives and source freshness
+        run: |
+          python -c "import sys; sys.path.insert(0, 'hosting/xs968799'); from deploy import load_release; print({d: len(f) for d,f in load_release().items()})"
+          python hosting/xs968799/check_source.py
+      - name: Execute selected old-server action
+        env:
+          XSERVER_XS968799_FTP_PASSWORD: ${{ secrets.XSERVER_XS968799_FTP_PASSWORD }}
+          PLACEMENT_ACTION: ${{ inputs.action }}
+        run: python hosting/xs968799/deploy.py --action "$PLACEMENT_ACTION" --report placement-report.json
+      - name: Save verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xs968799-placement-${{ inputs.action }}-${{ github.run_id }}
+          path: placement-report.json
+          if-no-files-found: ignore
+          retention-days: 30
