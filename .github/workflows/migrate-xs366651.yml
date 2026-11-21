@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: b890870e655e45bad7b9ed96a7e62d0aabd54806
+          ref: 63f388741720eead5599f745f275c3f2b11399d1
           fetch-depth: 0
           persist-credentials: false
           path: administrative
