@@ -1,6 +1,10 @@
 {
   "checked_date_jst": "2026-11-21",
   "server_id": "xs366651",
+  "paused": true,
+  "requested_server_id": "xs968799",
+  "workflow_state": "disabled_manually",
+  "old_server_ftp_verified": false,
   "credential_secret": "XSERVER_FTP_PASSWORD",
   "credential_configured": true,
   "ftp_authenticated": true,
@@ -10,6 +14,6 @@
   ],
   "uploaded": false,
   "dns_changed": false,
-  "next_step": "Confirm domain settings propagation and target server identity in the xs366651 server panel; do not add duplicate domains",
+  "next_step": "Do not continue xs366651 work. Review xs968799 endpoint rollback and use a separate old-server credential; no DNS changes or deletions",
   "evidence": "https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44859030398"
 }
