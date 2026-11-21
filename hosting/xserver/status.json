@@ -5,11 +5,11 @@
   "credential_configured": true,
   "ftp_authenticated": true,
   "targets": [
-    {"domain": "gyoseishoshipass.com", "public_html_exists": false},
-    {"domain": "shihoshoshipass.com", "public_html_exists": false}
+    {"domain": "gyoseishoshipass.com", "domain_addition_reported": true, "public_html_exists": false, "https_verified": false, "https_error": "hostname_mismatch"},
+    {"domain": "shihoshoshipass.com", "domain_addition_reported": true, "public_html_exists": false, "https_verified": false, "https_error": "hostname_mismatch"}
   ],
   "uploaded": false,
   "dns_changed": false,
-  "next_step": "Check and add both domains in the xs366651 server panel",
-  "evidence": "https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44858121221"
+  "next_step": "Confirm domain settings propagation and target server identity in the xs366651 server panel; do not add duplicate domains",
+  "evidence": "https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44859030398"
 }
