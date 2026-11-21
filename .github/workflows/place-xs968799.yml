@@ -6,7 +6,7 @@ on:
       action:
         description: "Old server only. DNS remains unchanged."
         type: choice
-        options: [inspect, place-both, verify]
+        options: [inspect, place-both, place-icons-compat, verify-effective]
         default: inspect
         required: true
 
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: a1ccb7d74eb46abb028590fbcf401f3b8d53a02c
+          ref: 4e1b17f74c02912cf9e26707435281d6189b8ce2
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
