@@ -292,10 +292,7 @@ def main():
     parser.add_argument('--action', choices=('inspect', 'place-both', 'verify', 'place-icons-compat', 'verify-effective'), default='inspect')
     parser.add_argument('--report', type=Path, default=Path('placement-report.json'))
     args = parser.parse_args()
-    sites = load_release()
-    delta = None
-    if args.action in ('place-icons-compat', 'verify-effective'):
-        sites, delta = icon_compatibility(sites)
+    sites, delta = icon_compatibility(load_release())
     password = os.environ.get('XSERVER_XS968799_FTP_PASSWORD')
     if not password:
         raise ValueError('OLD_SERVER_SECRET_MISSING')
