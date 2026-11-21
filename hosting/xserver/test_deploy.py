@@ -90,6 +90,16 @@ class MigrationTests(unittest.TestCase):
         before = ftp.files.copy()
         report = migrate(ftp, self.sites, 'testbatch', inspect_only=True)
         self.assertFalse(report['uploaded'])
+        self.assertTrue(report['all_targets_ready'])
+        self.assertEqual(ftp.files, before)
+
+    def test_inspection_reports_both_domains_when_first_domain_is_missing(self):
+        ftp = MemoryFTP()
+        ftp.dirs.remove('gyoseishoshipass.com/public_html')
+        before = ftp.files.copy()
+        report = migrate(ftp, self.sites, 'testbatch', inspect_only=True)
+        self.assertEqual([item['status'] for item in report['targets']], ['DOMAIN_NOT_CONFIGURED', 'READY'])
+        self.assertFalse(report['all_targets_ready'])
         self.assertEqual(ftp.files, before)
 
 

@@ -75,9 +75,37 @@ def existing_directory(ftp, path, cache):
     return bool(entry)
 
 
+def inspect_targets(ftp, sites):
+    cache, results = {}, []
+    allowed = {site['domain'] for site in PLAN['sites']}
+    for domain, files in sites.items():
+        if domain not in allowed:
+            raise ValueError('UNEXPECTED_DOMAIN')
+        root = PurePosixPath(domain) / 'public_html'
+        if not existing_directory(ftp, root, cache):
+            results.append({'domain': domain, 'status': 'DOMAIN_NOT_CONFIGURED', 'public_html_exists': False})
+            continue
+        entries = dict(ftp.mlsd(str(root)))
+        if any(name in entries for name in ('index.php', 'wp-config.php')):
+            results.append({'domain': domain, 'status': 'EXISTING_DYNAMIC_SITE', 'public_html_exists': True})
+            continue
+        existing = 0
+        for name in files:
+            path = root / name
+            if existing_file(ftp, path, cache):
+                read(ftp, path)
+                existing += 1
+        results.append({'domain': domain, 'status': 'READY', 'public_html_exists': True, 'existing_managed_files': existing})
+    return {'ftp_authenticated': True, 'server_id': PLAN['server_id'], 'targets': results,
+            'all_targets_ready': all(item['status'] == 'READY' for item in results),
+            'uploaded': False, 'dns_changed': False}
+
+
 def migrate(ftp, sites, batch, inspect_only=False):
     if not batch.isalnum():
         raise ValueError('INVALID_BATCH')
+    if inspect_only:
+        return inspect_targets(ftp, sites)
     cache, originals, changes = {}, {}, []
     private = PurePosixPath('.pass-migration') / batch
     # Inspect both domain folders before writing anything, including staging files.
@@ -93,8 +121,6 @@ def migrate(ftp, sites, batch, inspect_only=False):
         for name in files:
             path = root / name
             originals[str(path)] = read(ftp, path) if existing_file(ftp, path, cache) else None
-    if inspect_only:
-        return {'inspected_domains': list(sites), 'uploaded': False, 'dns_changed': False}
     existing_directory(ftp, PurePosixPath('.pass-migration'), cache)
     for domain, files in sites.items():
         for name, body in files.items():
@@ -152,6 +178,8 @@ def main():
             raise ValueError('UNEXPECTED_FTP_HOME')
         result = migrate(ftp, sites, secrets.token_hex(8), inspect_only=args.inspect_only)
         print(json.dumps(result))
+        if args.inspect_only and not result['all_targets_ready']:
+            raise ValueError('TARGET_DOMAINS_NOT_READY')
 
 
 if __name__ == '__main__':
@@ -160,7 +188,8 @@ if __name__ == '__main__':
     except Exception as error:
         # FTP/server errors can contain paths or other remote text; never dump credentials or a traceback.
         known = ('MISSING_SECRET:', 'UNEXPECTED_', 'SERVER_IP_CHANGED', 'DOMAIN_NOT_CONFIGURED:',
-                 'EXISTING_DYNAMIC_SITE:', 'REMOTE_', 'PUBLICATION_FAILED_', 'ROLLBACK_INCOMPLETE:')
+                 'EXISTING_DYNAMIC_SITE:', 'REMOTE_', 'PUBLICATION_FAILED_', 'ROLLBACK_INCOMPLETE:',
+                 'TARGET_DOMAINS_NOT_READY')
         message = str(error) if str(error).startswith(known) else type(error).__name__
         print('MIGRATION_STOPPED', message, file=sys.stderr)
         sys.exit(1)
