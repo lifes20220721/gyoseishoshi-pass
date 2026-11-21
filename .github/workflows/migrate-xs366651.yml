@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 63f388741720eead5599f745f275c3f2b11399d1
+          ref: bf6871b89b929226f23a9526bb941425efbd2263
           fetch-depth: 0
           persist-credentials: false
           path: administrative
@@ -68,6 +68,9 @@ jobs:
         env:
           XSERVER_FTP_PASSWORD: ${{ secrets.XSERVER_FTP_PASSWORD }}
         run: python administrative/hosting/xserver/deploy.py --packages packages --inspect-only
+      - name: Probe both HTTPS origins without changing DNS
+        if: ${{ inputs.action == 'inspect-server' && !cancelled() }}
+        run: python administrative/hosting/xserver/probe_https.py
       - name: Back up, stage and publish both sites
         if: inputs.action == 'upload-both'
         env:
