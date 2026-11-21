@@ -6,7 +6,7 @@ import threading
 import unittest
 from unittest.mock import patch
 
-from deploy import Remote, place, preflight, http_verify
+from deploy import Remote, place, preflight, http_verify, icon_compatibility, load_release
 
 
 class MemoryFTP:
@@ -65,6 +65,35 @@ class PlacementTests(unittest.TestCase):
         'gyoseishoshipass.com': {'index.html': b'new admin', '.well-known/assetlinks.json': b'certs'},
         'shihoshoshipass.com': {'index.html': b'new judicial', 'service-worker.js': b'new worker'},
     }
+
+    def test_prepared_site_icon_alias_adaptation_keeps_images_and_all_references(self):
+        import ast
+        import re
+        import json
+        original = load_release()
+        effective, delta = icon_compatibility(original)
+        for domain, files in original.items():
+            self.assertEqual(len(files), len(effective[domain]))
+            self.assertEqual(sum(n.startswith('app-icons/') for n in delta[domain]), 5)
+            for name, body in files.items():
+                if name.startswith('icons/'):
+                    self.assertEqual(body, effective[domain]['app-' + name])
+                elif name not in delta[domain]:
+                    self.assertEqual(body, effective[domain][name])
+            for icon in json.loads(effective[domain]['manifest.webmanifest'])['icons']:
+                self.assertIn(icon['src'], effective[domain])
+                self.assertTrue(icon['src'].startswith('app-icons/'))
+            worker = effective[domain]['service-worker.js'].decode()
+            for pattern in ('ASSETS', 'CORE_FILES'):
+                match = re.search(r'const ' + pattern + r'\s*=\s*(\[.*?\]);', worker, re.S)
+                if match:
+                    for path in ast.literal_eval(match.group(1)):
+                        path = path.removeprefix('./').split('?', 1)[0]
+                        if path:
+                            self.assertIn(path, effective[domain])
+            for name, body in effective[domain].items():
+                if name.endswith(('.html', '.js', '.webmanifest')):
+                    self.assertNotRegex(body.decode(), r'(?<!app-)icons/')
 
     def test_success_preserves_server_settings_api_state_and_backups(self):
         ftp = MemoryFTP()

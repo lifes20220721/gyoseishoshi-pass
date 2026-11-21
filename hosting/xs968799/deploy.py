@@ -56,6 +56,24 @@ def load_release():
     return sites
 
 
+def icon_compatibility(sites):
+    """XServer's /icons/ is an Apache alias outside the domain document root."""
+    effective, delta = {}, {}
+    for domain, files in sites.items():
+        effective[domain], delta[domain] = {}, {}
+        for name, body in files.items():
+            target = 'app-' + name if name.startswith('icons/') else name
+            content = body
+            if name.endswith(('.html', '.css', '.js', '.json', '.webmanifest', '.xml', '.txt')):
+                content = body.replace(b'icons/', b'app-icons/')
+            effective[domain][target] = content
+            if target != name or content != body:
+                delta[domain][target] = content
+        if len(effective[domain]) != len(files) or any(n.startswith('icons/') for n in effective[domain]):
+            raise ValueError('INVALID_ICON_COMPATIBILITY')
+    return effective, delta
+
+
 class SessionFTP(ftplib.FTP_TLS):
     """Verify both control/data TLS, reusing the authenticated TLS session."""
     def ntransfercmd(self, cmd, rest=None):
@@ -271,10 +289,13 @@ def http_verify(sites):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--action', choices=('inspect', 'place-both', 'verify'), default='inspect')
+    parser.add_argument('--action', choices=('inspect', 'place-both', 'verify', 'place-icons-compat', 'verify-effective'), default='inspect')
     parser.add_argument('--report', type=Path, default=Path('placement-report.json'))
     args = parser.parse_args()
     sites = load_release()
+    delta = None
+    if args.action in ('place-icons-compat', 'verify-effective'):
+        sites, delta = icon_compatibility(sites)
     password = os.environ.get('XSERVER_XS968799_FTP_PASSWORD')
     if not password:
         raise ValueError('OLD_SERVER_SECRET_MISSING')
@@ -293,6 +314,12 @@ def main():
             report['server_files_written'] = False
         elif args.action == 'place-both':
             report.update(place(remote, sites, secrets.token_hex(10)))
+        elif args.action == 'place-icons-compat':
+            report.update(place(remote, delta, secrets.token_hex(10)))
+            report['verification'] = verify(remote, sites)
+            report['private_backups'] = backup_inventory(remote, load_release())
+            report['compatibility'] = 'Apache /icons/ alias: use app-icons/ in static assets and references'
+            report['original_icon_files_preserved'] = True
         else:
             report['verification'] = verify(remote, sites)
             report['private_backups'] = backup_inventory(remote, sites)

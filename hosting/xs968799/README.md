@@ -21,3 +21,11 @@ verification is disabled. No DNS, server configuration deletion or cancellation
 operation exists in this profile. The paused xs366651 workflow stays disabled.
 
 Validation: `python -m unittest discover -s hosting/xs968799 -v`.
+
+The live server reserves `/icons/` as an Apache directory alias (its stock
+`blank.gif` is returned instead of the domain's uploaded files). The action
+`place-icons-compat` reuses the original ZIPs and places the five unchanged icon
+images per site at `app-icons/`, changing only icon references in HTML, manifests
+and service workers. It preserves the original uploaded icons, backs up replaced
+text files, and verifies every active file. `verify-effective` reads that adapted
+release. No Apache settings or `.htaccess` changes are needed.
