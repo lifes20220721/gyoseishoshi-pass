@@ -1,4 +1,4 @@
-name: Diagnose old xs968799 HTTP without writes
+name: Verify old xs968799 HTTP without writes
 on:
   workflow_dispatch:
 permissions:
@@ -13,25 +13,29 @@ jobs:
         with:
           ref: a1ccb7d74eb46abb028590fbcf401f3b8d53a02c
           persist-credentials: false
-      - name: Read direct HTTP response metadata with and without cache-busting
+      - name: Verify every placed file by direct IP and check existing public services
         run: |
           python - <<'PY'
-          from contextlib import closing
-          import hashlib,json,re,secrets,sys
+          import datetime,json,socket,sys,urllib.request
+          from pathlib import Path
           sys.path.insert(0,'hosting/xs968799')
-          from deploy import OldServerHTTP,load_release,digest
-          sites=load_release()
-          for domain,files in sites.items():
-              for name in ['index.html','app.js','styles.css','service-worker.js']:
-                  for bust in [False,True]:
-                      path='/'+name+('?pass_placement_probe='+secrets.token_hex(8) if bust else '')
-                      with closing(OldServerHTTP(domain,timeout=20)) as c:
-                          c.request('GET',path,headers={'Cache-Control':'no-cache','Pragma':'no-cache','Accept-Encoding':'identity'})
-                          peer=c.sock.getpeername()[0]
-                          r=c.getresponse();b=r.read(20*1024*1024)
-                          title=re.search(rb'<title[^>]*>(.*?)</title>',b,re.S)
-                          print('HTTP_PROBE',json.dumps({'domain':domain,'file':name,'bust':bust,'peer':peer,'status':r.status,
-                              'expected_match':digest(b)==digest(files[name]),'sha256':digest(b),'bytes':len(b),
-                              'title':title.group(1).decode('utf-8',errors='replace') if title else None,
-                              'headers':dict(r.getheaders())}),flush=True)
+          from deploy import http_verify,load_release
+          result={'server_id':'xs968799','observed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              'http_verification':http_verify(load_release()),'dns_changed':False,
+              'ftp_verification_run':'https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44906267773'}
+          result['public_ipv4']={d:sorted(set(socket.gethostbyname_ex(d)[2])) for d in ['gyoseishoshipass.com','shihoshoshipass.com']}
+          with urllib.request.urlopen('https://xs968799.xsrv.jp/pass-review/healthz',timeout=20) as response:
+              result['review_api']={'status':response.status,'ok':json.load(response).get('ok')}
+          Path('http-report.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          print('FINAL_HTTP_RESULT',json.dumps(result),flush=True)
+          if any(s['errors'] for s in result['http_verification']) or result['review_api']!={'status':200,'ok':True}:
+              raise SystemExit('READ_ONLY_VERIFICATION_INCOMPLETE')
           PY
+      - name: Save read-only verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xs968799-final-http-${{ github.run_id }}
+          path: http-report.json
+          if-no-files-found: ignore
+          retention-days: 30
