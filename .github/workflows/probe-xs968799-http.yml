@@ -1,0 +1,37 @@
+name: Diagnose old xs968799 HTTP without writes
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    if: github.repository == 'lifes20220721/gyoseishoshi-pass' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a1ccb7d74eb46abb028590fbcf401f3b8d53a02c
+          persist-credentials: false
+      - name: Read direct HTTP response metadata with and without cache-busting
+        run: |
+          python - <<'PY'
+          from contextlib import closing
+          import hashlib,json,re,secrets,sys
+          sys.path.insert(0,'hosting/xs968799')
+          from deploy import OldServerHTTP,load_release,digest
+          sites=load_release()
+          for domain,files in sites.items():
+              for name in ['index.html','app.js','styles.css','service-worker.js']:
+                  for bust in [False,True]:
+                      path='/'+name+('?pass_placement_probe='+secrets.token_hex(8) if bust else '')
+                      with closing(OldServerHTTP(domain,timeout=20)) as c:
+                          c.request('GET',path,headers={'Cache-Control':'no-cache','Pragma':'no-cache','Accept-Encoding':'identity'})
+                          peer=c.sock.getpeername()[0]
+                          r=c.getresponse();b=r.read(20*1024*1024)
+                          title=re.search(rb'<title[^>]*>(.*?)</title>',b,re.S)
+                          print('HTTP_PROBE',json.dumps({'domain':domain,'file':name,'bust':bust,'peer':peer,'status':r.status,
+                              'expected_match':digest(b)==digest(files[name]),'sha256':digest(b),'bytes':len(b),
+                              'title':title.group(1).decode('utf-8',errors='replace') if title else None,
+                              'headers':dict(r.getheaders())}),flush=True)
+          PY
