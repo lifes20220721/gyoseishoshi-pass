@@ -1,0 +1,78 @@
+name: Inspect old XServer xs968799 read-only
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inspect-xs968799-read-only
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    if: github.repository == 'lifes20220721/gyoseishoshi-pass' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Inspect old server using only its dedicated credential
+        env:
+          XSERVER_XS968799_FTP_PASSWORD: ${{ secrets.XSERVER_XS968799_FTP_PASSWORD }}
+        run: |
+          python - <<'PY'
+          import ftplib, json, os, socket, ssl, sys
+          password = os.environ.get('XSERVER_XS968799_FTP_PASSWORD', '')
+          print('OLD_FTP_SECRET_CONFIGURED', bool(password))
+          if not password:
+              print('OLD_FTP_INSPECTION_NOT_RUN_MISSING_SECRET')
+              sys.exit(1)
+          host, account = 'sv17319.xserver.jp', 'xs968799'
+          stage = 'identity-check'
+          try:
+              if '85.131.200.80' not in socket.gethostbyname_ex(host)[2]:
+                  raise ValueError('OLD_SERVER_IP_CHANGED')
+              with ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=30) as ftp:
+                  stage = 'encrypted-connection'
+                  ftp.connect(host, 21)
+                  stage = 'authentication'
+                  ftp.login(account, password)
+                  ftp.prot_p()
+                  home = ftp.pwd()
+                  if home not in ('/', '/home/xs968799', '/home/xs968799/'):
+                      raise ValueError('UNEXPECTED_OLD_FTP_HOME')
+                  stage = 'read-only-folder-inspection'
+                  results = []
+                  targets = [
+                      ('administrative_web', 'gyoseishoshipass.com/public_html'),
+                      ('judicial_web', 'shihoshoshipass.com/public_html'),
+                      ('review_api', 'xs968799.xsrv.jp/public_html/pass-review'),
+                      ('review_private', 'xs968799.xsrv.jp/pass-review-private')
+                  ]
+                  for name, relative in targets:
+                      exists, resolved = False, None
+                      for candidate in (relative, '/home/xs968799/' + relative):
+                          try:
+                              ftp.cwd(candidate)
+                              exists, resolved = True, candidate
+                              break
+                          except ftplib.error_perm:
+                              pass
+                          finally:
+                              ftp.cwd(home)
+                      results.append({'target': name, 'directory_exists': exists, 'path': resolved})
+                  print('OLD_FTP_READ_ONLY_RESULT', json.dumps({
+                      'server_id': account, 'ftp_authenticated': True, 'targets': results,
+                      'server_files_written': False, 'dns_changed': False
+                  }))
+          except Exception as error:
+              code = str(error)[:3] if isinstance(error, ftplib.Error) and str(error)[:3].isdigit() else None
+              print('OLD_FTP_INSPECTION_FAILED', json.dumps({
+                  'stage': stage, 'error_type': type(error).__name__, 'ftp_code': code,
+                  'server_files_written': False, 'dns_changed': False
+              }))
+              sys.exit(1)
+          PY
