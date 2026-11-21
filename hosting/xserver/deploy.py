@@ -78,12 +78,29 @@ def existing_directory(ftp, path, cache):
 def inspect_targets(ftp, sites):
     cache, results = {}, []
     allowed = {site['domain'] for site in PLAN['sites']}
+    home = ftp.pwd()
+    root_entries = list(ftp.mlsd('.'))
+    visible_expected = [
+        {'name': name, 'type': info.get('type')}
+        for name, info in root_entries
+        if PurePosixPath(name).name in allowed
+    ]
     for domain, files in sites.items():
         if domain not in allowed:
             raise ValueError('UNEXPECTED_DOMAIN')
         root = PurePosixPath(domain) / 'public_html'
         if not existing_directory(ftp, root, cache):
-            results.append({'domain': domain, 'status': 'DOMAIN_NOT_CONFIGURED', 'public_html_exists': False})
+            direct_exists = False
+            try:
+                ftp.cwd(str(root))
+                direct_exists = True
+            except ftplib.error_perm:
+                pass
+            finally:
+                ftp.cwd(home)
+            results.append({'domain': domain,
+                            'status': 'FTP_LISTING_MISMATCH' if direct_exists else 'DOMAIN_NOT_CONFIGURED',
+                            'public_html_exists': direct_exists})
             continue
         entries = dict(ftp.mlsd(str(root)))
         if any(name in entries for name in ('index.php', 'wp-config.php')):
@@ -96,7 +113,8 @@ def inspect_targets(ftp, sites):
                 read(ftp, path)
                 existing += 1
         results.append({'domain': domain, 'status': 'READY', 'public_html_exists': True, 'existing_managed_files': existing})
-    return {'ftp_authenticated': True, 'server_id': PLAN['server_id'], 'targets': results,
+    return {'ftp_authenticated': True, 'server_id': PLAN['server_id'], 'ftp_home': home,
+            'visible_expected_domains': visible_expected, 'targets': results,
             'all_targets_ready': all(item['status'] == 'READY' for item in results),
             'uploaded': False, 'dns_changed': False}
 

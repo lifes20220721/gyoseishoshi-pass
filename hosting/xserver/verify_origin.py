@@ -1,5 +1,6 @@
 """Verify both XServer HTTPS origins before changing public DNS."""
 import argparse
+from contextlib import closing
 import hashlib
 import http.client
 import json
@@ -25,7 +26,7 @@ def main():
     for site in PLAN['sites']:
         files = inspect_archive(args.packages / site['archive'])
         for name, expected in files.items():
-            with OriginConnection(site['domain'], timeout=30, context=ssl.create_default_context()) as connection:
+            with closing(OriginConnection(site['domain'], timeout=30, context=ssl.create_default_context())) as connection:
                 connection.request('GET', '/' + quote(name), headers={'Host': site['domain'], 'Cache-Control': 'no-cache'})
                 response = connection.getresponse()
                 body = response.read()
