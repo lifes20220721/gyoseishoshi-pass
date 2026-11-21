@@ -1,0 +1,15 @@
+{
+  "checked_date_jst": "2026-11-21",
+  "server_id": "xs366651",
+  "credential_secret": "XSERVER_FTP_PASSWORD",
+  "credential_configured": true,
+  "ftp_authenticated": true,
+  "targets": [
+    {"domain": "gyoseishoshipass.com", "public_html_exists": false},
+    {"domain": "shihoshoshipass.com", "public_html_exists": false}
+  ],
+  "uploaded": false,
+  "dns_changed": false,
+  "next_step": "Check and add both domains in the xs366651 server panel",
+  "evidence": "https://github.com/lifes20220721/gyoseishoshi-pass/actions/runs/44858121221"
+}
