@@ -1,0 +1,134 @@
+name: Inspect Android and Play icons without publishing
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gyosei-play-access
+  cancel-in-progress: false
+jobs:
+  inspect:
+    if: github.repository == 'lifes20220721/gyoseishoshi-pass' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts --no-audit --no-fund google-auth-library@10.5.0
+      - name: Inspect current internal release, listing icons, and generated APKs
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs/promises';
+          import crypto from 'node:crypto';
+          import { GoogleAuth } from 'google-auth-library';
+          const credentials = JSON.parse(process.env.PLAY_SERVICE_ACCOUNT_JSON || '{}');
+          if (credentials.client_email !== 'gyosei-play-uploader@shihoshoshi-pass-ci.iam.gserviceaccount.com') throw Error('WRONG_ACCOUNT');
+          const client = await new GoogleAuth({credentials,scopes:['https://www.googleapis.com/auth/androidpublisher']}).getClient();
+          const root='https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.gyoseishoshipass.app';
+          const report={packageName:'com.gyoseishoshipass.app',observedAt:new Date().toISOString(),editCommitted:false,storeAssetsChanged:false,bundlesUploaded:false,errors:[],listingIcons:[],apkDownloads:[]};
+          const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+          await fs.mkdir('inspection/apks',{recursive:true});await fs.mkdir('inspection/icons',{recursive:true});
+          let editUrl;
+          async function read(url,label) {
+            try {return (await client.request({method:'GET',url,timeout:30000})).data;}
+            catch(e){report.errors.push({label,status:e.response?.status||null,message:String(e.response?.data?.error?.message||'Request failed').slice(0,250)});return null;}
+          }
+          try {
+            const {data:edit}=await client.request({method:'POST',url:root+'/edits',data:{},timeout:20000});
+            editUrl=root+'/edits/'+encodeURIComponent(edit.id);
+            const track=await read(editUrl+'/tracks/internal','internal-track');
+            report.releases=(track?.releases||[]).map(r=>({name:r.name,status:r.status,versionCodes:r.versionCodes}));
+            const listings=await read(editUrl+'/listings','store-listings');
+            report.listings=(listings?.listings||[]).map(x=>({language:x.language,title:x.title}));
+            const languages=[...new Set(['ja-JP',...report.listings.map(l=>l.language)])];
+            for (const language of languages) {
+              const icons=await read(editUrl+'/listings/'+encodeURIComponent(language)+'/icon','listing-icon-'+language);
+              const items=icons?.images||[];
+              report.listingIcons.push({language,count:items.length,sha256:items.map(i=>i.sha256)});
+              for (let i=0;i<items.length;i++) {
+                if (!items[i].url) continue;
+                const response=await fetch(items[i].url);
+                if(response.ok){const b=Buffer.from(await response.arrayBuffer());await fs.writeFile('inspection/icons/play-'+language+'-'+i+'.png',b);}
+              }
+            }
+            const codes=report.releases.flatMap(r=>r.versionCodes||[]).map(Number).filter(Number.isSafeInteger);
+            if(codes.length) {
+              report.versionCode=Math.max(...codes);
+              const bundles=await read(editUrl+'/bundles','bundles');
+              report.currentBundle=(bundles?.bundles||[]).find(b=>b.versionCode===report.versionCode)||null;
+              const generated=await read(root+'/generatedApks/'+report.versionCode,'generated-apks');
+              const group=generated?.generatedApks?.[0];
+              if(group) {
+                let selected=[];
+                if(group.generatedUniversalApk?.downloadId) selected=[{...group.generatedUniversalApk,type:'universal'}];
+                else if(group.generatedStandaloneApks?.length) selected=[{...group.generatedStandaloneApks[0],type:'standalone'}];
+                else {
+                  const base=(group.generatedSplitApks||[]).filter(a=>a.moduleName==='base');
+                  const variant=Math.min(...base.map(a=>a.variantId));
+                  selected=base.filter(a=>a.variantId===variant&&(!a.splitId||/dpi/.test(a.splitId))).slice(0,6).map(a=>({...a,type:'split'}));
+                }
+                for(let i=0;i<selected.length;i++) {
+                  const item=selected[i],file='inspection/apks/generated-'+i+'.apk';
+                  try {
+                    const response=await client.request({method:'GET',url:root+'/generatedApks/'+report.versionCode+'/downloads/'+encodeURIComponent(item.downloadId)+':download',responseType:'arraybuffer',timeout:60000});
+                    const b=Buffer.from(response.data);await fs.writeFile(file,b);
+                    report.apkDownloads.push({type:item.type,splitId:item.splitId||'',file,bytes:b.length,sha256:sha(b)});
+                  } catch(e){report.errors.push({label:'download-apk',status:e.response?.status||null});}
+                }
+              }
+            }
+          } finally {
+            if(editUrl) {
+              try{await client.request({method:'DELETE',url:editUrl,timeout:20000});report.temporaryEditDiscarded=true;}
+              catch{report.temporaryEditDiscarded=false;process.exitCode=1;}
+            }
+            await fs.writeFile('inspection/report.json',JSON.stringify(report,null,2)+'\n');
+            console.log('ICON_INSPECTION',JSON.stringify(report));
+          }
+          NODE
+      - name: Inspect APK icon resources without exporting application binaries
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile,hashlib,struct,json,os,subprocess
+          out=Path('inspection');rows=[];badging=[]
+          sdk=Path(os.environ.get('ANDROID_HOME','/usr/local/lib/android/sdk'))
+          tools=sorted(sdk.glob('build-tools/*/aapt2'))
+          for apk in sorted((out/'apks').glob('*.apk')):
+              if tools:
+                  result=subprocess.run([str(tools[-1]),'dump','badging',str(apk)],capture_output=True,text=True)
+                  badging.extend(line for line in result.stdout.splitlines() if line.startswith(('package:','application:','application-icon-','launchable-activity:')))
+              with zipfile.ZipFile(apk) as archive:
+                  for name in archive.namelist():
+                      if not name.startswith('res/') or not name.endswith('.png'):continue
+                      body=archive.read(name)
+                      if not body.startswith(b'\x89PNG\r\n\x1a\n'):continue
+                      width,height=struct.unpack('>II',body[16:24])
+                      if width!=height or width not in (48,72,96,108,144,162,192,216,324,432,512):continue
+                      filename='apk-icon-'+str(len(rows))+'.png'
+                      (out/'icons'/filename).write_bytes(body)
+                      rows.append({'apk':apk.name,'resource':name,'image':filename,'width':width,'height':height,'sha256':hashlib.sha256(body).hexdigest()})
+          (out/'apk-icon-report.json').write_text(json.dumps({'images':rows,'badging':badging},indent=2)+'\n')
+          print('APK_ICON_RESOURCES',json.dumps({'images':rows,'badging':badging}))
+          PY
+      - name: Save public icon images and inspection results only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gyosei-icon-inspection-${{ github.run_id }}
+          path: |
+            inspection/report.json
+            inspection/apk-icon-report.json
+            inspection/icons/*.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Remove temporary downloaded application binaries
+        if: always()
+        run: |
+          node --input-type=module -e "import fs from 'node:fs'; fs.rmSync('inspection/apks',{recursive:true,force:true});"
