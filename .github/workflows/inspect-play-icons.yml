@@ -116,13 +116,20 @@ jobs:
               if tools and apk.suffix=='.apk':
                   result=subprocess.run([str(tools[-1]),'dump','badging',str(apk)],capture_output=True,text=True)
                   badging.extend(line for line in result.stdout.splitlines() if line.startswith(('package:','application:','application-icon-','launchable-activity:')))
+                  adaptive=subprocess.run([str(tools[-1]),'dump','xmltree','--file','res/mipmap-anydpi-v26/ic_launcher.xml',str(apk)],capture_output=True,text=True)
+                  badging.extend('adaptive: '+line for line in adaptive.stdout.splitlines())
+                  resources=subprocess.run([str(tools[-1]),'dump','resources',str(apk)],capture_output=True,text=True)
+                  capture=0
+                  for line in resources.stdout.splitlines():
+                      if 'mipmap/ic_launcher' in line or 'mipmap/ic_maskable' in line:capture=9
+                      if capture:badging.append('icon-resource: '+line);capture-=1
               with zipfile.ZipFile(apk) as archive:
                   for name in archive.namelist():
                       if not name.startswith(('res/','base/res/')) or not name.endswith('.png'):continue
                       body=archive.read(name)
                       if not body.startswith(b'\x89PNG\r\n\x1a\n'):continue
                       width,height=struct.unpack('>II',body[16:24])
-                      if width!=height or width not in (48,72,96,108,144,162,192,216,324,432,512):continue
+                      if width!=height or (width not in (48,72,96,108,144,162,192,216,324,432,512) and not any(k in name for k in ('ic_launcher','ic_maskable'))):continue
                       filename='apk-icon-'+str(len(rows))+'.png'
                       (out/'icons'/filename).write_bytes(body)
                       rows.append({'apk':apk.name,'resource':name,'image':filename,'width':width,'height':height,'sha256':hashlib.sha256(body).hexdigest()})
