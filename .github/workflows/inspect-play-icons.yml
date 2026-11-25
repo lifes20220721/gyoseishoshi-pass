@@ -14,6 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: c4c717344cadb4583922ab99c0f1dd5274f3fd60
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -76,12 +77,23 @@ jobs:
                 for(let i=0;i<selected.length;i++) {
                   const item=selected[i],file='inspection/apks/generated-'+i+'.apk';
                   try {
-                    const response=await client.request({method:'GET',url:root+'/generatedApks/'+report.versionCode+'/downloads/'+encodeURIComponent(item.downloadId)+':download',responseType:'arraybuffer',timeout:60000});
-                    const b=Buffer.from(response.data);await fs.writeFile(file,b);
+                    const response=await client.request({method:'GET',url:root+'/generatedApks/'+report.versionCode+'/downloads/'+encodeURIComponent(item.downloadId)+':download?alt=media',responseType:'arraybuffer',timeout:60000});
+                    const b=Buffer.from(response.data);if(!b.length){report.errors.push({label:'empty-generated-apk-response'});continue;}await fs.writeFile(file,b);
                     report.apkDownloads.push({type:item.type,splitId:item.splitId||'',file,bytes:b.length,sha256:sha(b)});
                   } catch(e){report.errors.push({label:'download-apk',status:e.response?.status||null});}
                 }
               }
+            }
+            if(report.versionCode===2 && report.currentBundle?.sha256) {
+              try {
+                const {openBundle}=await import('./play-store/scripts/sealed-bundle.mjs');
+                const envelope=JSON.parse(await fs.readFile('.github/play-bundles/v2.sealed.json','utf8'));
+                const b=openBundle(envelope,credentials,2);
+                if(sha(b)!==report.currentBundle.sha256)throw Error('AAB_HASH_DIFFERS_FROM_PLAY');
+                const file='inspection/uploaded-release.aab';
+                await fs.writeFile(file,b,{mode:0o600});
+                report.uploadedAab={file,bytes:b.length,sha256:sha(b),matchesPlayBundleHash:true};
+              } catch(e){report.errors.push({label:'inspect-uploaded-aab',message:String(e.message).slice(0,120)});}
             }
           } finally {
             if(editUrl) {
@@ -100,13 +112,13 @@ jobs:
           out=Path('inspection');rows=[];badging=[]
           sdk=Path(os.environ.get('ANDROID_HOME','/usr/local/lib/android/sdk'))
           tools=sorted(sdk.glob('build-tools/*/aapt2'))
-          for apk in sorted((out/'apks').glob('*.apk')):
-              if tools:
+          for apk in sorted((out/'apks').glob('*.apk'))+sorted(out.glob('*.aab')):
+              if tools and apk.suffix=='.apk':
                   result=subprocess.run([str(tools[-1]),'dump','badging',str(apk)],capture_output=True,text=True)
                   badging.extend(line for line in result.stdout.splitlines() if line.startswith(('package:','application:','application-icon-','launchable-activity:')))
               with zipfile.ZipFile(apk) as archive:
                   for name in archive.namelist():
-                      if not name.startswith('res/') or not name.endswith('.png'):continue
+                      if not name.startswith(('res/','base/res/')) or not name.endswith('.png'):continue
                       body=archive.read(name)
                       if not body.startswith(b'\x89PNG\r\n\x1a\n'):continue
                       width,height=struct.unpack('>II',body[16:24])
@@ -131,4 +143,4 @@ jobs:
       - name: Remove temporary downloaded application binaries
         if: always()
         run: |
-          node --input-type=module -e "import fs from 'node:fs'; fs.rmSync('inspection/apks',{recursive:true,force:true});"
+          node --input-type=module -e "import fs from 'node:fs'; fs.rmSync('inspection/apks',{recursive:true,force:true}); fs.rmSync('inspection/uploaded-release.aab',{force:true});"
