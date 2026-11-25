@@ -1,0 +1,163 @@
+name: Verify old xs968799 HTTPS before DNS switch
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: xs968799-read-only-https
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.repository == 'lifes20220721/gyoseishoshi-pass' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 4e1b17f74c02912cf9e26707435281d6189b8ce2
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check real domain certificates and all active assets directly on old IP
+        run: |
+          python - <<'PY'
+          """Read-only TLS and static-content check on xs968799 before public DNS cutover."""
+          from concurrent.futures import ThreadPoolExecutor
+          from contextlib import closing
+          from datetime import datetime, timezone
+          import hashlib
+          import http.client
+          import json
+          from pathlib import Path
+          import socket
+          import ssl
+          import sys
+          from urllib.parse import urljoin, urlparse
+          
+          sys.path.insert(0, str(Path('hosting/xs968799').resolve()))
+          from deploy import load_release, icon_compatibility
+          
+          IP = '85.131.200.80'
+          FTP_HOST = 'sv17319.xserver.jp'
+          DOMAINS = ('gyoseishoshipass.com', 'shihoshoshipass.com')
+          HOSTS = tuple(host for domain in DOMAINS for host in (domain, 'www.' + domain))
+          CONTEXT = ssl.create_default_context()
+          assert CONTEXT.check_hostname and CONTEXT.verify_mode == ssl.CERT_REQUIRED
+          
+          
+          class OldHTTPS(http.client.HTTPSConnection):
+              def connect(self):
+                  raw = socket.create_connection((IP, 443), self.timeout)
+                  try:
+                      self.sock = CONTEXT.wrap_socket(raw, server_hostname=self.host)
+                  except Exception:
+                      raw.close()
+                      raise
+          
+          
+          def get(host, path):
+              with closing(OldHTTPS(host, timeout=25, context=CONTEXT)) as connection:
+                  connection.request('GET', path, headers={'Cache-Control': 'no-cache', 'Accept-Encoding': 'identity'})
+                  peer = connection.sock.getpeername()[0]
+                  assert peer == IP
+                  cert = connection.sock.getpeercert()
+                  cert_info = {'hostname_verified': True, 'chain_verified': True, 'peer_ipv4': peer,
+                               'san': [value for kind, value in cert.get('subjectAltName', ()) if kind == 'DNS'],
+                               'issuer': dict(part for rdn in cert.get('issuer', ()) for part in rdn),
+                               'not_before': cert.get('notBefore'), 'not_after': cert.get('notAfter')}
+                  response = connection.getresponse()
+                  body = response.read(100 * 1024 * 1024 + 1)
+                  return response.status, response.getheader('Location'), body, cert_info
+          
+          
+          def inspect_host(host, sites):
+              domain = host.removeprefix('www.')
+              expected = sites[domain]['index.html']
+              result = {'host': host, 'target_ipv4': IP, 'hops': []}
+              url = 'https://' + host + '/'
+              try:
+                  for _ in range(6):
+                      parsed = urlparse(url)
+                      if parsed.scheme != 'https' or parsed.hostname not in HOSTS or parsed.port not in (None, 443):
+                          raise ValueError('UNEXPECTED_REDIRECT')
+                      path = parsed.path or '/'
+                      if parsed.query:
+                          path += '?' + parsed.query
+                      status, location, body, cert = get(parsed.hostname, path)
+                      result['hops'].append({'url': url, 'status': status, 'location': location, 'certificate': cert})
+                      if status in (301, 302, 303, 307, 308) and location:
+                          url = urljoin(url, location)
+                          continue
+                      result.update(final_url=url, http_status=status,
+                                    index_sha256=hashlib.sha256(body).hexdigest(),
+                                    index_exact_match=body == expected,
+                                    success=status == 200 and body == expected)
+                      return result
+                  raise ValueError('TOO_MANY_REDIRECTS')
+              except Exception as error:
+                  result.update(success=False, error_type=type(error).__name__, error=str(error))
+                  if isinstance(error, ssl.SSLCertVerificationError):
+                      result['verify_code'] = error.verify_code
+                      result['verify_message'] = error.verify_message
+                  return result
+          
+          
+          def inspect_file(task):
+              domain, name, expected = task
+              try:
+                  status, location, body, cert = get(domain, '/' + name)
+                  success = status == 200 and body == expected
+                  return {'domain': domain, 'file': name, 'http_status': status,
+                          'exact_match': success, 'sha256': hashlib.sha256(body).hexdigest(),
+                          'expected_sha256': hashlib.sha256(expected).hexdigest()}
+              except Exception as error:
+                  return {'domain': domain, 'file': name, 'exact_match': False,
+                          'error_type': type(error).__name__, 'error': str(error)}
+          
+          
+          def main():
+              if set(socket.gethostbyname_ex(FTP_HOST)[2]) != {IP}:
+                  raise ValueError('OLD_SERVER_IDENTITY_CHANGED')
+              sites, _ = icon_compatibility(load_release())
+              with ThreadPoolExecutor(max_workers=4) as pool:
+                  hosts = list(pool.map(lambda host: inspect_host(host, sites), HOSTS))
+              for result in hosts:
+                  print('TLS_HOST_RESULT', json.dumps(result), flush=True)
+              eligible = {domain for domain in DOMAINS if any(h['host'] == domain and h['success'] for h in hosts)}
+              tasks = [(domain, name, body) for domain, files in sites.items() if domain in eligible
+                       for name, body in files.items()]
+              with ThreadPoolExecutor(max_workers=4) as pool:
+                  files = list(pool.map(inspect_file, tasks))
+              summaries = []
+              for domain, expected in sites.items():
+                  checked = [result for result in files if result['domain'] == domain]
+                  summaries.append({'domain': domain, 'expected_files': len(expected),
+                                    'verified_files': sum(result['exact_match'] for result in checked),
+                                    'errors': [result for result in checked if not result['exact_match']],
+                                    'skipped_due_to_host_check': domain not in eligible})
+              report = {'server_id': 'xs968799', 'target_ipv4': IP,
+                        'observed_at_utc': datetime.now(timezone.utc).isoformat(),
+                        'hosts': hosts, 'files': summaries,
+                        'public_ipv4': {domain: sorted(set(socket.gethostbyname_ex(domain)[2])) for domain in DOMAINS},
+                        'tls_verification_disabled': False, 'dns_changed': False,
+                        'server_settings_changed': False, 'server_files_written': False,
+                        'all_checks_pass': all(host['success'] for host in hosts) and
+                        all(s['verified_files'] == s['expected_files'] and not s['errors'] for s in summaries)}
+              Path('https-report.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+              print('OLD_HTTPS_RESULT', json.dumps(report), flush=True)
+              if not report['all_checks_pass']:
+                  raise SystemExit('HTTPS_NOT_READY: report saved; no settings changed')
+          
+          
+          if __name__ == '__main__':
+              main()
+          PY
+      - name: Save read-only HTTPS evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xs968799-https-${{ github.run_id }}
+          path: https-report.json
+          if-no-files-found: ignore
+          retention-days: 30
