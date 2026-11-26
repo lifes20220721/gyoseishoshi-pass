@@ -81,8 +81,14 @@ jobs:
                   report[label + '_logpush'] = data.get('logpush', False)
                   consumers = data.get('tail_consumers', []) or []
                   report[label + '_tail_consumer_count'] = len(consumers)
-                  report['checks'][label + '_observability_disabled'] = (
-                      isinstance(observation, dict) and observation.get('enabled') is False)
+                  # Cloudflare's read API permits null when no observability
+                  # configuration exists. Preserve that raw value in the report;
+                  # do not mistake it for an explicitly enabled configuration.
+                  report['checks'][label + '_no_enabled_observability_configuration'] = (
+                      observation is None or (
+                          isinstance(observation, dict) and observation.get('enabled') is False
+                          and not any((observation.get(k) or {}).get('enabled') is True
+                                      for k in ['logs', 'traces', 'agents', 'issues'])))
                   report['checks'][label + '_logpush_disabled'] = data.get('logpush', False) is False
                   report['checks'][label + '_no_tail_consumers'] = len(consumers) == 0
 
