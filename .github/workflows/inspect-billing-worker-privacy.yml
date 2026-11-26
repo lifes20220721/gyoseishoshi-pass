@@ -1,0 +1,201 @@
+name: Inspect billing Worker privately without production writes
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    if: github.repository == 'lifes20220721/gyoseishoshi-pass'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Read production configuration and compare deployed code
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          python - <<'PY'
+          import datetime, email.parser, email.policy, hashlib, json, os, pathlib, re, urllib.error, urllib.request
+
+          NAME = 'gyoseishoshi-pass-billing'
+          report = {
+              'worker': NAME,
+              'observed_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              'production_api_methods': ['GET'],
+              'purchase_requests_sent': False,
+              'checks': {}, 'api_reads': [], 'limitations': []
+          }
+          token = os.environ.get('CLOUDFLARE_API_TOKEN', '').strip()
+          class ReadError(Exception):
+              pass
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, *args, **kwargs):
+                  return None
+          opener = urllib.request.build_opener(NoRedirect())
+          def get(endpoint, raw=False):
+              req = urllib.request.Request('https://api.cloudflare.com/client/v4' + endpoint,
+                  headers={'Authorization': 'Bearer ' + token}, method='GET')
+              label = endpoint.replace(account_id, '<account>') if 'account_id' in globals() else endpoint
+              try:
+                  with opener.open(req, timeout=30) as response:
+                      payload = response.read(2_000_001)
+                      content_type = response.headers.get('content-type', '')
+                      status = response.status
+                  if len(payload) > 2_000_000:
+                      raise ReadError('RESPONSE_TOO_LARGE')
+                  report['api_reads'].append({'endpoint': label, 'status': status})
+                  if raw:
+                      return payload, content_type
+                  data = json.loads(payload)
+                  if data.get('success') is not True:
+                      raise ReadError('API_UNSUCCESSFUL')
+                  return data['result']
+              except urllib.error.HTTPError as exc:
+                  report['api_reads'].append({'endpoint': label, 'status': exc.code})
+                  raise ReadError('HTTP_' + str(exc.code)) from None
+              except ReadError:
+                  raise
+              except Exception:
+                  raise ReadError('READ_FAILED') from None
+
+          try:
+              if not re.fullmatch(r'[A-Za-z0-9_-]{20,256}', token):
+                  raise ReadError('MISSING_OR_INVALID_TOKEN')
+              accounts = get('/accounts?per_page=50')
+              if not isinstance(accounts, list) or len(accounts) != 1:
+                  raise ReadError('EXPECTED_ONE_SCOPED_ACCOUNT')
+              account_id = accounts[0]['id']
+              if not re.fullmatch(r'[a-f0-9]{32}', account_id) or not account_id.startswith('85cbe232'):
+                  raise ReadError('UNEXPECTED_ACCOUNT')
+              prefix = '/accounts/' + account_id + '/workers/scripts/' + NAME
+              settings = get(prefix + '/settings')
+              script_settings = get(prefix + '/script-settings')
+              for label, data in [('version', settings), ('script', script_settings)]:
+                  observation = data.get('observability')
+                  report[label + '_observability'] = observation
+                  report[label + '_logpush'] = data.get('logpush', False)
+                  consumers = data.get('tail_consumers', []) or []
+                  report[label + '_tail_consumer_count'] = len(consumers)
+                  report['checks'][label + '_observability_disabled'] = (
+                      isinstance(observation, dict) and observation.get('enabled') is False)
+                  report['checks'][label + '_logpush_disabled'] = data.get('logpush', False) is False
+                  report['checks'][label + '_no_tail_consumers'] = len(consumers) == 0
+
+              bindings = settings.get('bindings', [])
+              report['binding_names_and_types'] = [
+                  {'name': b.get('name'), 'type': b.get('type')} for b in bindings]
+              report['checks']['only_expected_secret_binding'] = len(bindings) == 1 and (
+                  bindings[0].get('name') == 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'
+                  and bindings[0].get('type') == 'secret_text')
+              report['checks']['no_storage_analytics_service_or_queue_bindings'] = all(
+                  b.get('type') == 'secret_text' for b in bindings)
+
+              deployments = get(prefix + '/deployments')
+              entries = deployments if isinstance(deployments, list) else deployments.get('deployments', [])
+              if not entries:
+                  raise ReadError('NO_DEPLOYMENTS')
+              latest = max(entries, key=lambda d: d.get('created_on', ''))
+              active = [v for v in latest.get('versions', []) if v.get('percentage', 0) > 0]
+              report['active_deployment'] = {
+                  'id': latest.get('id'), 'created_on': latest.get('created_on'),
+                  'versions': [{'version_id': v.get('version_id'), 'percentage': v.get('percentage')} for v in active]}
+              report['checks']['single_version_at_100_percent'] = len(active) == 1 and active[0].get('percentage') == 100
+              if len(active) == 1:
+                  version = get(prefix + '/versions/' + active[0]['version_id'])
+                  report['active_version_id'] = version.get('id')
+                  resources = version.get('resources', {})
+                  report['active_version_binding_types'] = [b.get('type') for b in resources.get('bindings', [])]
+
+              payload, content_type = get(prefix, raw=True)
+              modules = []
+              if content_type.lower().startswith('multipart/'):
+                  message = email.parser.BytesParser(policy=email.policy.default).parsebytes(
+                      ('Content-Type: ' + content_type + '\r\nMIME-Version: 1.0\r\n\r\n').encode() + payload)
+                  for part in message.iter_parts():
+                      modules.append((part.get_filename() or part.get_param('name', header='content-disposition'),
+                                      part.get_payload(decode=True)))
+              else:
+                  modules.append(('worker.mjs', payload))
+              report['deployed_module_names'] = [name for name, data in modules]
+              expected = pathlib.Path('billing-backend/worker.mjs').read_bytes()
+              matched = [data for name, data in modules if data == expected]
+              report['expected_source_sha256'] = hashlib.sha256(expected).hexdigest()
+              report['deployed_source_hashes'] = [hashlib.sha256(data).hexdigest() for name, data in modules]
+              report['checks']['deployed_source_matches_reviewed_source'] = len(modules) == 1 and len(matched) == 1
+              source = expected.decode()
+              report['checks']['no_console_or_persistent_storage_calls'] = not re.search(
+                  r'console\s*\.|caches\s*\.|\.put\s*\(|writeDataPoint\s*\(|waitUntil\s*\(|\.send\s*\(|\.prepare\s*\(', source)
+              report['source_review'] = {
+                  'purchase_processing': 'request-local memory; no purchase database or disk writes',
+                  'only_cached_item': 'server OAuth credential, not purchase information',
+                  'outbound_services': ['Google OAuth token endpoint', 'Google Play Developer API']}
+              try:
+                  tails = get(prefix + '/tails')
+                  sessions = tails if isinstance(tails, list) else tails.get('tails', [])
+                  report['active_live_tail_count'] = len(sessions)
+                  report['checks']['no_active_live_tails'] = len(sessions) == 0
+              except ReadError as exc:
+                  report['limitations'].append('Live-tail session listing: ' + str(exc))
+              report['purchase_retention_configuration_passed'] = all(report['checks'].values())
+          except ReadError as exc:
+              report['fatal_read_error'] = str(exc)
+              report['purchase_retention_configuration_passed'] = False
+          except Exception:
+              report['fatal_read_error'] = 'INSPECTION_FAILED_WITH_DETAILS_SUPPRESSED'
+              report['purchase_retention_configuration_passed'] = False
+
+          report['limitations'].append('Provider-internal security metadata and Google original transaction records are outside this Worker configuration inspection.')
+          pathlib.Path('privacy-inspection').mkdir(exist_ok=True)
+          output = json.dumps(report, ensure_ascii=False, indent=2)
+          pathlib.Path('privacy-inspection/report.json').write_text(output)
+          # Never print production configuration, account/deployment identifiers,
+          # hashes, results, credentials, or raw API responses to public job logs.
+          # Successful and unsuccessful inspections both proceed to encryption.
+          print('Read-only inspection finished; preparing encrypted private report.')
+          PY
+      - name: Encrypt report for local-only review
+        run: |
+          cat > inspection-certificate.pem <<'CERT'
+          -----BEGIN CERTIFICATE-----
+          MIIEOTCCAqGgAwIBAgIUFZNl9Jfn62O3/jSUC3yalp43c1IwDQYJKoZIhvcNAQEL
+          BQAwLDEqMCgGA1UEAwwhTG9jYWwgYmlsbGluZyBpbnNwZWN0aW9uIDIwMjYxMTI2
+          MB4XDTI2MTEyNjA0NTc1NFoXDTI2MTEyODA0NTc1NFowLDEqMCgGA1UEAwwhTG9j
+          YWwgYmlsbGluZyBpbnNwZWN0aW9uIDIwMjYxMTI2MIIBojANBgkqhkiG9w0BAQEF
+          AAOCAY8AMIIBigKCAYEAmDaU7GcLMUp3aW8OltN6dFhRaQiL5gx5qwtRMYDbe6Wo
+          B1h8JT5fGjw2ERDP2cwJjKUz7KM9GCJz/KTHhpNTRhWVPn7L497lbjeFRR88NhXw
+          Dv/dIvlKIlhuzbkW184bXBS0Hk66C6qsi6Mq5UZ9sNM729BVXbyYfPiWbyN370yB
+          Xy7fyaZB6k8JHgGQ41mztNhA41CNyKANCbE1qet4cytSrhU252+VoqlUZLYDgs5y
+          aYCAPSx09HYR+1snL9RiwAHpt+SxZ/BBuj9kKPq4enjhPBrVxxWf/aQpVgg5CW8+
+          Qi7Oa4m1i4eyqCabbhKhmscCHyBZMW3XLQz/ph2sFbL/+epD4b9trWP2/OqfwH2D
+          lpq3QmWjth4Sz5L7X0vFmMg9ObDCYBkdXoXTAxiKazfWdaEsTzVeDQpaTD2pNg3z
+          MqUSX5XayQD/xk+0+BvaK88P/k8WbC/uRxjttiNyOCZcTNvNr7hlwiE/mD7/NKVe
+          0oYjcOyqUalmceXua8+bAgMBAAGjUzBRMB0GA1UdDgQWBBTLZU8ns4MyY4eB/MH9
+          65803mqMNzAfBgNVHSMEGDAWgBTLZU8ns4MyY4eB/MH965803mqMNzAPBgNVHRMB
+          Af8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBgQB7xlqkaomzZpfKCNU3ZwZGguGR
+          gGhOJgv/L1scmX/XmV7vJphkTh5Inl4qZBgUwOYBrc2Ci/NlZU9ZWfzeLl6jMq1D
+          orwAqSF11rq9Q3+yJEBH+XW0smAlTghE5F8YYHQYRLfJUZUi3+XrlSFcSc756W+9
+          uHSktCQXJmGRMb+/kWm0uslSOjq+pWsYzqPq+mKCMD9xr3RbtnjvfES8KYoG7w2C
+          +3/p7YGp/svdOsluO6F+2xl3jma/i/8lMmk/UH9B50PklaVnfx9mZQpG9f2Ofn4V
+          Wmc6Gnpv/nizfd4AWnCxJqFCZm5iWaOx3Brql9Ya9dwyMhowmog4jPIPs8e6dgQQ
+          AqTuX1M75JqBnvpHy62VyhfpA06LUzqeFyh3ckH86fcKi41Kw1XpwHVIcMsho+8i
+          3OXJbvSlVvcQthN6mGoicF2FWZgU28WGAs1oyIod7F1wixia0IRz9s0mt3yS1DZf
+          MLCXCOJaDx+A03ssJbq6ly/Rb4YnghG7Cywqu60=
+          -----END CERTIFICATE-----
+          CERT
+          openssl cms -encrypt -binary -aes-256-cbc -outform DER -in privacy-inspection/report.json -out privacy-inspection/report.enc inspection-certificate.pem
+          python - <<'PY'
+          from pathlib import Path
+          Path('privacy-inspection/report.json').unlink()
+          print('Only encrypted report is retained; decryption key is not in GitHub.')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: billing-worker-privacy-inspection
+          path: privacy-inspection/report.enc
+          retention-days: 1
